@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #e7ecf6;
+  word-break: keep-all;
+  -webkit-font-smoothing: antialiased;
+}
+
+.zl-scroll {
+  scrollbar-width: none;
+}
+.zl-scroll::-webkit-scrollbar {
+  display: none;
+}

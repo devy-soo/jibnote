@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  listings     Listing[]
+}
+
+model Listing {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  dealType       String
+  deposit        Int      @default(0)
+  monthlyRent    Int?
+  area           String?
+  floor          String?
+  maintenanceFee Int?
+  walkMinutes    Int?
+  address        String?
+  agentName      String?
+  agentPhone     String?
+  memo           String?
+  tags           String   @default("[]")
+  status         String   @default("관심")
+  saved          Boolean  @default(true)
+  checklist      String   @default("{}")
+  ratings        String   @default("{}")
+  visitNote      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  photos         Photo[]
+
+  @@index([userId])
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url       String
+  publicId  String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([listingId])
+}

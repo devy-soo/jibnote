@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { api, setAuthToken } from "../api/client";
 
-const STORAGE_KEY = "jiblog:token";
+const STORAGE_KEY = "jibnote:token";
 
 interface AuthUser {
   id: string;

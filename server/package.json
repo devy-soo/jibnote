@@ -1,5 +1,5 @@
 {
-  "name": "jiblog-server",
+  "name": "jibnote-server",
   "version": "0.1.0",
   "private": true,
   "main": "index.js",

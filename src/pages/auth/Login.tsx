@@ -34,7 +34,7 @@ export function Login() {
               <path d="M32 14 12 30v20a2 2 0 0 0 2 2h12V38h12v14h12a2 2 0 0 0 2-2V30L32 14z" fill="currentColor" />
             </svg>
           </div>
-          <h1 className="text-[20px] font-bold text-ink">집로그</h1>
+          <h1 className="text-[20px] font-bold text-ink">집노트</h1>
           <p className="text-[13px] font-medium text-ink-faint">
             어느 기기에서 열어도 저장한 매물이 그대로 보여요
           </p>

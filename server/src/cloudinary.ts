@@ -14,7 +14,7 @@ export interface UploadedImage {
 export function uploadImage(buffer: Buffer): Promise<UploadedImage> {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: "jiblog", resource_type: "image" },
+      { folder: "jibnote", resource_type: "image" },
       (error, result) => {
         if (error || !result) {
           reject(error ?? new Error("Cloudinary upload failed"));

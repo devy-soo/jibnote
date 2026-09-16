@@ -20,5 +20,5 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4001;
 app.listen(PORT, () => {
-  console.log(`집로그 API listening on http://localhost:${PORT}`);
+  console.log(`집노트 API listening on http://localhost:${PORT}`);
 });

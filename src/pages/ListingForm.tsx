@@ -9,7 +9,12 @@ import { resolveUploadUrl } from "../api/client";
 import { extractListingFromPhoto } from "../api/extract";
 import { STATUS_OPTIONS } from "../constants/statuses";
 import { DEAL_TYPES, RENT_TYPES, depositLabel } from "../constants/dealTypes";
-import { PLATFORM_PRESETS, MAINTENANCE_FEE_ITEMS } from "../constants/platforms";
+import {
+  PLATFORM_PRESETS,
+  MAINTENANCE_FEE_ITEMS,
+  BUILDING_TYPE_PRESETS,
+  OPTION_ITEMS,
+} from "../constants/platforms";
 import { sqmToPyeong } from "../lib/format";
 import type { Agent, DealType, ListingStatus } from "../types";
 
@@ -45,12 +50,19 @@ export function ListingForm() {
   const [title, setTitle] = useState("");
   const [listingNumber, setListingNumber] = useState("");
   const [platform, setPlatform] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
+  const [buildingType, setBuildingType] = useState("");
   const [dealType, setDealType] = useState<DealType>("월세");
   const [deposit, setDeposit] = useState("");
   const [monthlyRent, setMonthlyRent] = useState("");
   const [areaSqm, setAreaSqm] = useState("");
   const [rooms, setRooms] = useState("");
   const [floor, setFloor] = useState("");
+  const [totalFloors, setTotalFloors] = useState("");
+  const [approvalDate, setApprovalDate] = useState("");
+  const [isViolationBuilding, setIsViolationBuilding] = useState<boolean | undefined>(undefined);
+  const [parkingAvailable, setParkingAvailable] = useState<boolean | undefined>(undefined);
+  const [options, setOptions] = useState<string[]>([]);
   const [maintenanceFee, setMaintenanceFee] = useState("");
   const [maintenanceFeeIncludes, setMaintenanceFeeIncludes] = useState<string[]>([]);
   const [walkMinutes, setWalkMinutes] = useState("");
@@ -75,12 +87,19 @@ export function ListingForm() {
       setTitle(existing.title);
       setListingNumber(existing.listingNumber ?? "");
       setPlatform(existing.platform ?? "");
+      setSourceUrl(existing.sourceUrl ?? "");
+      setBuildingType(existing.buildingType ?? "");
       setDealType(existing.dealType);
       setDeposit(existing.deposit ? String(existing.deposit) : "");
       setMonthlyRent(existing.monthlyRent ? String(existing.monthlyRent) : "");
       setAreaSqm(existing.areaSqm != null ? String(existing.areaSqm) : "");
       setRooms(existing.rooms != null ? String(existing.rooms) : "");
       setFloor(existing.floor ?? "");
+      setTotalFloors(existing.totalFloors != null ? String(existing.totalFloors) : "");
+      setApprovalDate(existing.approvalDate ?? "");
+      setIsViolationBuilding(existing.isViolationBuilding ?? undefined);
+      setParkingAvailable(existing.parkingAvailable ?? undefined);
+      setOptions(existing.options ?? []);
       setMaintenanceFee(existing.maintenanceFee ? String(existing.maintenanceFee) : "");
       setMaintenanceFeeIncludes(existing.maintenanceFeeIncludes ?? []);
       setWalkMinutes(existing.walkMinutes ? String(existing.walkMinutes) : "");
@@ -165,6 +184,10 @@ export function ListingForm() {
     );
   }
 
+  function toggleOption(item: string) {
+    setOptions((prev) => (prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item]));
+  }
+
   async function handleExtract() {
     if (!captureFile) return;
     setExtracting(true);
@@ -180,12 +203,19 @@ export function ListingForm() {
       apply(!!ex.title, () => setTitle(ex.title!));
       apply(!!ex.listingNumber, () => setListingNumber(ex.listingNumber!));
       apply(!!ex.platform, () => setPlatform(ex.platform!));
+      apply(!!ex.sourceUrl, () => setSourceUrl(ex.sourceUrl!));
+      apply(!!ex.buildingType, () => setBuildingType(ex.buildingType!));
       apply(!!ex.dealType, () => setDealType(ex.dealType!));
       apply(ex.deposit != null, () => setDeposit(String(ex.deposit)));
       apply(ex.monthlyRent != null, () => setMonthlyRent(String(ex.monthlyRent)));
       apply(ex.areaSqm != null, () => setAreaSqm(String(ex.areaSqm)));
       apply(ex.rooms != null, () => setRooms(String(ex.rooms)));
       apply(!!ex.floor, () => setFloor(ex.floor!));
+      apply(ex.totalFloors != null, () => setTotalFloors(String(ex.totalFloors)));
+      apply(!!ex.approvalDate, () => setApprovalDate(ex.approvalDate!));
+      apply(ex.isViolationBuilding != null, () => setIsViolationBuilding(ex.isViolationBuilding));
+      apply(ex.parkingAvailable != null, () => setParkingAvailable(ex.parkingAvailable));
+      apply(!!ex.options?.length, () => setOptions(ex.options!));
       apply(ex.maintenanceFee != null, () => setMaintenanceFee(String(ex.maintenanceFee)));
       apply(ex.walkMinutes != null, () => setWalkMinutes(String(ex.walkMinutes)));
       apply(!!ex.nearestStation, () => setNearestStation(ex.nearestStation!));
@@ -232,12 +262,19 @@ export function ListingForm() {
       title: title.trim(),
       listingNumber: listingNumber.trim() || undefined,
       platform: platform.trim() || undefined,
+      sourceUrl: sourceUrl.trim() || undefined,
+      buildingType: buildingType.trim() || undefined,
       dealType,
       deposit: Number(deposit) || 0,
       monthlyRent: RENT_TYPES.includes(dealType) ? Number(monthlyRent) || 0 : undefined,
       areaSqm: areaSqm ? Number(areaSqm) : undefined,
       rooms: rooms ? Number(rooms) : undefined,
       floor: floor.trim() || undefined,
+      totalFloors: totalFloors ? Number(totalFloors) : undefined,
+      approvalDate: approvalDate.trim() || undefined,
+      isViolationBuilding,
+      parkingAvailable,
+      options,
       maintenanceFee: maintenanceFee ? Number(maintenanceFee) : undefined,
       maintenanceFeeIncludes,
       walkMinutes: walkMinutes ? Number(walkMinutes) : undefined,
@@ -466,6 +503,31 @@ export function ListingForm() {
             ))}
           </div>
 
+          <Section label="매물 링크">
+            <TextInput value={sourceUrl} onChange={setSourceUrl} placeholder="https://..." />
+          </Section>
+
+          <Section label="건축물 용도">
+            <TextInput value={buildingType} onChange={setBuildingType} placeholder="예: 다세대주택(빌라)" />
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {BUILDING_TYPE_PRESETS.map((b) => (
+                <button
+                  key={b}
+                  type="button"
+                  onClick={() => setBuildingType(b)}
+                  className="rounded-lg px-2.5 py-1 text-[11.5px] font-bold"
+                  style={{
+                    background: buildingType === b ? "#E8EEFD" : "#fff",
+                    color: buildingType === b ? "#1D3FAF" : "#5B6B8C",
+                    border: `1px solid ${buildingType === b ? "#2B5BE2" : "rgba(13,27,52,.1)"}`,
+                  }}
+                >
+                  {b}
+                </button>
+              ))}
+            </div>
+          </Section>
+
           <Section label="거래 유형">
             <div className="flex gap-2">
               {DEAL_TYPES.map((d) => (
@@ -512,7 +574,45 @@ export function ListingForm() {
             <Section label="관리비 (만원)">
               <TextInput value={maintenanceFee} onChange={setMaintenanceFee} placeholder="예: 8" type="number" />
             </Section>
+            <Section label="건물 총 층수">
+              <TextInput value={totalFloors} onChange={setTotalFloors} placeholder="예: 5" type="number" />
+            </Section>
+            <Section label="사용승인일">
+              <TextInput value={approvalDate} onChange={setApprovalDate} placeholder="예: 2010-05" />
+            </Section>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Section label="위반건축물 여부">
+              <YesNoToggle value={isViolationBuilding} onChange={setIsViolationBuilding} />
+            </Section>
+            <Section label="주차 가능 여부">
+              <YesNoToggle value={parkingAvailable} onChange={setParkingAvailable} />
+            </Section>
+          </div>
+
+          <Section label="옵션 / 풀옵션">
+            <div className="flex flex-wrap gap-1.5">
+              {OPTION_ITEMS.map((item) => {
+                const active = options.includes(item);
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => toggleOption(item)}
+                    className="rounded-lg px-2.5 py-1.5 text-[12px] font-bold"
+                    style={{
+                      background: active ? "#E2F6EF" : "#fff",
+                      color: active ? "#0B7355" : "#5B6B8C",
+                      border: `1px solid ${active ? "#0B7355" : "rgba(13,27,52,.1)"}`,
+                    }}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
 
           <Section label="관리비 포함 항목">
             <div className="flex flex-wrap gap-1.5">
@@ -750,6 +850,40 @@ function Section({ label, children }: { label: string; children: React.ReactNode
     <div>
       <p className="mb-1.5 text-[12px] font-bold text-ink-muted">{label}</p>
       {children}
+    </div>
+  );
+}
+
+function YesNoToggle({
+  value,
+  onChange,
+}: {
+  value: boolean | undefined;
+  onChange: (v: boolean | undefined) => void;
+}) {
+  return (
+    <div className="flex gap-2">
+      {[
+        { label: "예", v: true },
+        { label: "아니오", v: false },
+      ].map((opt) => {
+        const active = value === opt.v;
+        return (
+          <button
+            key={opt.label}
+            type="button"
+            onClick={() => onChange(active ? undefined : opt.v)}
+            className="flex-1 rounded-xl border py-2.5 text-[13px] font-bold"
+            style={{
+              borderColor: active ? "#2B5BE2" : "rgba(13,27,52,.1)",
+              background: active ? "#E8EEFD" : "#fff",
+              color: active ? "#1D3FAF" : "#5B6B8C",
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -35,12 +35,19 @@ function serialize(listing: Listing & { photos: Photo[] }) {
     title: listing.title,
     listingNumber: listing.listingNumber ?? undefined,
     platform: listing.platform ?? undefined,
+    sourceUrl: listing.sourceUrl ?? undefined,
+    buildingType: listing.buildingType ?? undefined,
     dealType: listing.dealType,
     deposit: listing.deposit,
     monthlyRent: listing.monthlyRent ?? undefined,
     areaSqm: listing.areaSqm ?? undefined,
     rooms: listing.rooms ?? undefined,
     floor: listing.floor ?? undefined,
+    totalFloors: listing.totalFloors ?? undefined,
+    approvalDate: listing.approvalDate ?? undefined,
+    isViolationBuilding: listing.isViolationBuilding ?? undefined,
+    parkingAvailable: listing.parkingAvailable ?? undefined,
+    options: safeParse<string[]>(listing.options, []),
     maintenanceFee: listing.maintenanceFee ?? undefined,
     maintenanceFeeIncludes: safeParse<string[]>(listing.maintenanceFeeIncludes, []),
     walkMinutes: listing.walkMinutes ?? undefined,
@@ -108,16 +115,28 @@ const agentSchema = z.object({
   phone: z.string(),
 });
 
+const boolField = z
+  .enum(["true", "false"])
+  .optional()
+  .transform((v) => (v === undefined ? undefined : v === "true"));
+
 const baseFields = z.object({
   title: z.string().min(1),
   listingNumber: z.string().optional(),
   platform: z.string().optional(),
+  sourceUrl: z.string().optional(),
+  buildingType: z.string().optional(),
   dealType: z.enum(DEAL_TYPES),
   deposit: z.coerce.number().int().min(0).default(0),
   monthlyRent: z.coerce.number().int().min(0).optional(),
   areaSqm: z.coerce.number().min(0).optional(),
   rooms: z.coerce.number().int().min(0).optional(),
   floor: z.string().optional(),
+  totalFloors: z.coerce.number().int().min(0).optional(),
+  approvalDate: z.string().optional(),
+  isViolationBuilding: boolField,
+  parkingAvailable: boolField,
+  options: z.string().optional(), // JSON string array
   maintenanceFee: z.coerce.number().int().min(0).optional(),
   maintenanceFeeIncludes: z.string().optional(), // JSON string array
   walkMinutes: z.coerce.number().int().min(0).optional(),
@@ -151,6 +170,7 @@ router.post("/", upload.array("photos", 8), async (req: AuthedRequest, res) => {
   const maintenanceFeeIncludes = data.maintenanceFeeIncludes
     ? safeParse<string[]>(data.maintenanceFeeIncludes, [])
     : [];
+  const options = data.options ? safeParse<string[]>(data.options, []) : [];
   const agents = parseAgents(data.agents);
 
   let uploaded;
@@ -166,12 +186,19 @@ router.post("/", upload.array("photos", 8), async (req: AuthedRequest, res) => {
       title: data.title,
       listingNumber: data.listingNumber || null,
       platform: data.platform || null,
+      sourceUrl: data.sourceUrl || null,
+      buildingType: data.buildingType || null,
       dealType: data.dealType,
       deposit: data.deposit,
       monthlyRent: RENT_TYPES.has(data.dealType) ? data.monthlyRent ?? 0 : null,
       areaSqm: data.areaSqm,
       rooms: data.rooms,
       floor: data.floor || null,
+      totalFloors: data.totalFloors,
+      approvalDate: data.approvalDate || null,
+      isViolationBuilding: data.isViolationBuilding ?? null,
+      parkingAvailable: data.parkingAvailable ?? null,
+      options: JSON.stringify(options),
       maintenanceFee: data.maintenanceFee,
       maintenanceFeeIncludes: JSON.stringify(maintenanceFeeIncludes),
       walkMinutes: data.walkMinutes,
@@ -206,6 +233,7 @@ router.put("/:id", upload.array("photos", 8), async (req: AuthedRequest, res) =>
   const maintenanceFeeIncludes = data.maintenanceFeeIncludes
     ? safeParse<string[]>(data.maintenanceFeeIncludes, [])
     : [];
+  const options = data.options ? safeParse<string[]>(data.options, []) : [];
   const agents = parseAgents(data.agents);
   const existingIds = new Set(existing.photos.map((p) => p.id));
   const photoOrder = req.body.photoOrder
@@ -252,12 +280,19 @@ router.put("/:id", upload.array("photos", 8), async (req: AuthedRequest, res) =>
       title: data.title,
       listingNumber: data.listingNumber || null,
       platform: data.platform || null,
+      sourceUrl: data.sourceUrl || null,
+      buildingType: data.buildingType || null,
       dealType: data.dealType,
       deposit: data.deposit,
       monthlyRent: RENT_TYPES.has(data.dealType) ? data.monthlyRent ?? 0 : null,
       areaSqm: data.areaSqm,
       rooms: data.rooms,
       floor: data.floor || null,
+      totalFloors: data.totalFloors,
+      approvalDate: data.approvalDate || null,
+      isViolationBuilding: data.isViolationBuilding ?? null,
+      parkingAvailable: data.parkingAvailable ?? null,
+      options: JSON.stringify(options),
       maintenanceFee: data.maintenanceFee,
       maintenanceFeeIncludes: JSON.stringify(maintenanceFeeIncludes),
       walkMinutes: data.walkMinutes,

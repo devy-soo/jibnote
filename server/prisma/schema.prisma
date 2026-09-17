@@ -22,12 +22,19 @@ model Listing {
   title                  String
   listingNumber          String?
   platform               String?
+  sourceUrl              String?
+  buildingType           String?
   dealType               String
   deposit                Int      @default(0)
   monthlyRent            Int?
   areaSqm                Float?
   rooms                  Int?
   floor                  String?
+  totalFloors            Int?
+  approvalDate           String?
+  isViolationBuilding    Boolean?
+  parkingAvailable       Boolean?
+  options                String   @default("[]")
   maintenanceFee         Int?
   maintenanceFeeIncludes String   @default("[]")
   walkMinutes            Int?

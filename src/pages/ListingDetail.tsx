@@ -110,7 +110,7 @@ export function ListingDetail() {
             {formatDealPrice(listing)}
           </p>
           {listing.address && (
-            <div className="mb-4 flex items-center gap-2">
+            <div className="mb-1.5 flex items-center gap-2">
               <p className="text-[13px] font-medium text-ink-faint">{listing.address}</p>
               <a
                 href={`https://map.naver.com/p/search/${encodeURIComponent(listing.address)}`}
@@ -119,6 +119,18 @@ export function ListingDetail() {
                 className="flex-none text-[12px] font-bold text-primary"
               >
                 지도에서 보기
+              </a>
+            </div>
+          )}
+          {listing.sourceUrl && (
+            <div className="mb-4">
+              <a
+                href={listing.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[12px] font-bold text-primary"
+              >
+                매물 링크 열기
               </a>
             </div>
           )}
@@ -175,7 +187,45 @@ export function ListingDetail() {
                       : "미입력"
                   }
                 />
+                <InfoTile label="건축물 용도" value={listing.buildingType || "미입력"} />
+                <InfoTile
+                  label="건물 총 층수"
+                  value={listing.totalFloors != null ? `${listing.totalFloors}층` : "미입력"}
+                />
+                <InfoTile label="사용승인일" value={listing.approvalDate || "미입력"} />
+                <InfoTile
+                  label="주차 가능 여부"
+                  value={
+                    listing.parkingAvailable == null ? "미입력" : listing.parkingAvailable ? "가능" : "불가능"
+                  }
+                />
               </div>
+
+              {listing.isViolationBuilding != null && (
+                <div
+                  className="rounded-2xl border p-3.5 text-[12.5px] font-bold"
+                  style={
+                    listing.isViolationBuilding
+                      ? { borderColor: "#FCA5A5", background: "#FEF2F2", color: "#DC2626" }
+                      : { borderColor: "#A7E5CC", background: "#E2F6EF", color: "#0B7355" }
+                  }
+                >
+                  {listing.isViolationBuilding ? "⚠ 위반건축물로 확인됨" : "위반건축물 아님"}
+                </div>
+              )}
+
+              {listing.options.length > 0 && (
+                <div className="rounded-3xl border border-line bg-white p-[18px]">
+                  <h3 className="mb-2.5 text-[15.5px] font-bold text-ink">옵션</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {listing.options.map((item) => (
+                      <span key={item} className="rounded-lg bg-chip px-2.5 py-1 text-[11.5px] font-bold text-ink-soft">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="rounded-3xl border border-line bg-white p-[18px]">
                 <div className="mb-1 flex items-baseline justify-between">

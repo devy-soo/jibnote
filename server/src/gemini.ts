@@ -9,12 +9,19 @@ export interface ExtractedListing {
   title?: string;
   listingNumber?: string;
   platform?: string;
+  sourceUrl?: string;
+  buildingType?: string;
   dealType?: "전세" | "월세" | "반전세" | "매매";
   deposit?: number;
   monthlyRent?: number;
   areaSqm?: number;
   rooms?: number;
   floor?: string;
+  totalFloors?: number;
+  approvalDate?: string;
+  isViolationBuilding?: boolean;
+  parkingAvailable?: boolean;
+  options?: string[];
   maintenanceFee?: number;
   walkMinutes?: number;
   nearestStation?: string;
@@ -28,12 +35,19 @@ const RESPONSE_SCHEMA = {
     title: { type: "string" },
     listingNumber: { type: "string" },
     platform: { type: "string" },
+    sourceUrl: { type: "string" },
+    buildingType: { type: "string" },
     dealType: { type: "string", enum: ["전세", "월세", "반전세", "매매"] },
     deposit: { type: "number" },
     monthlyRent: { type: "number" },
     areaSqm: { type: "number" },
     rooms: { type: "number" },
     floor: { type: "string" },
+    totalFloors: { type: "number" },
+    approvalDate: { type: "string" },
+    isViolationBuilding: { type: "boolean" },
+    parkingAvailable: { type: "boolean" },
+    options: { type: "array", items: { type: "string" } },
     maintenanceFee: { type: "number" },
     walkMinutes: { type: "number" },
     nearestStation: { type: "string" },
@@ -56,12 +70,19 @@ const PROMPT = `이 이미지는 한국 부동산 매물(전세/월세/반전세
 - title: 단지명 또는 매물명
 - listingNumber: 매물번호 (있는 경우)
 - platform: 이 화면이 어느 부동산 플랫폼인지 (KB부동산, 네이버부동산, 직방, 다방, 피터팬의좋은방구하기 등 화면에서 유추 가능하면)
+- sourceUrl: 화면에 보이는 매물 상세 페이지 URL (주소창 등에 보이면)
+- buildingType: 건축물 용도/종류 (다가구주택, 다세대주택(빌라), 단독주택, 오피스텔, 아파트, 상가주택, 근린생활시설 중 유추 가능한 것)
 - dealType: "전세" / "월세" / "반전세" / "매매" 중 하나
 - deposit: 보증금(전세금·매매가 포함), 만원 단위 숫자
 - monthlyRent: 월세, 만원 단위 숫자 (월세·반전세일 때만)
 - areaSqm: 전용면적, 제곱미터(㎡) 단위 숫자만 (평수만 있으면 3.3058을 곱해서 ㎡로 환산)
 - rooms: 방 개수, 숫자만
 - floor: 층/방향 (예: "3층 / 남향")
+- totalFloors: 건물 총 층수, 숫자만
+- approvalDate: 사용승인일 (예: "2010-05" 형식, 연월만 있으면 연월까지만)
+- isViolationBuilding: 위반건축물 여부 (true/false, 명시돼 있을 때만)
+- parkingAvailable: 주차 가능 여부 (true/false, 명시돼 있을 때만)
+- options: 풀옵션/옵션 항목 배열 (냉장고, 세탁기, 에어컨, 가스레인지/인덕션, 옷장, 책상, 침대, TV, 신발장, 전자레인지 중 화면에 보이는 것만)
 - maintenanceFee: 관리비, 만원 단위 숫자
 - walkMinutes: 역까지 도보 시간, 분 단위 숫자
 - nearestStation: 가까운 지하철역 이름 (예: "2호선 강남역")

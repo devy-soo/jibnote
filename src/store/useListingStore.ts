@@ -7,12 +7,19 @@ export interface ListingPayload {
   title: string;
   listingNumber?: string;
   platform?: string;
+  sourceUrl?: string;
+  buildingType?: string;
   dealType: DealType;
   deposit: number;
   monthlyRent?: number;
   areaSqm?: number;
   rooms?: number;
   floor?: string;
+  totalFloors?: number;
+  approvalDate?: string;
+  isViolationBuilding?: boolean;
+  parkingAvailable?: boolean;
+  options: string[];
   maintenanceFee?: number;
   maintenanceFeeIncludes: string[];
   walkMinutes?: number;
@@ -57,6 +64,8 @@ function buildFormData(payload: ListingPayload): FormData {
   fd.append("title", payload.title);
   if (payload.listingNumber) fd.append("listingNumber", payload.listingNumber);
   if (payload.platform) fd.append("platform", payload.platform);
+  if (payload.sourceUrl) fd.append("sourceUrl", payload.sourceUrl);
+  if (payload.buildingType) fd.append("buildingType", payload.buildingType);
   fd.append("dealType", payload.dealType);
   fd.append("deposit", String(payload.deposit));
   if (RENT_TYPES.includes(payload.dealType) && payload.monthlyRent != null) {
@@ -65,6 +74,15 @@ function buildFormData(payload: ListingPayload): FormData {
   if (payload.areaSqm != null) fd.append("areaSqm", String(payload.areaSqm));
   if (payload.rooms != null) fd.append("rooms", String(payload.rooms));
   if (payload.floor) fd.append("floor", payload.floor);
+  if (payload.totalFloors != null) fd.append("totalFloors", String(payload.totalFloors));
+  if (payload.approvalDate) fd.append("approvalDate", payload.approvalDate);
+  if (payload.isViolationBuilding != null) {
+    fd.append("isViolationBuilding", String(payload.isViolationBuilding));
+  }
+  if (payload.parkingAvailable != null) {
+    fd.append("parkingAvailable", String(payload.parkingAvailable));
+  }
+  fd.append("options", JSON.stringify(payload.options));
   if (payload.maintenanceFee != null) fd.append("maintenanceFee", String(payload.maintenanceFee));
   fd.append("maintenanceFeeIncludes", JSON.stringify(payload.maintenanceFeeIncludes));
   if (payload.walkMinutes != null) fd.append("walkMinutes", String(payload.walkMinutes));

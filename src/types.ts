@@ -31,6 +31,10 @@ export interface Listing {
   listingNumber?: string;
   /** 어느 플랫폼에서 본 매물인지 (네이버부동산, 직방 등) */
   platform?: string;
+  /** 원본 매물 링크 */
+  sourceUrl?: string;
+  /** 건축물 용도 (다가구주택, 오피스텔 등) */
+  buildingType?: string;
   dealType: DealType;
   /** 보증금(전세금·매매가 포함), 단위: 만원 */
   deposit: number;
@@ -42,6 +46,16 @@ export interface Listing {
   rooms?: number;
   /** 예: "3층 / 남향" */
   floor?: string;
+  /** 건물 총 층수 */
+  totalFloors?: number;
+  /** 사용승인일 (예: "2010-05") */
+  approvalDate?: string;
+  /** 위반건축물 여부 */
+  isViolationBuilding?: boolean;
+  /** 주차 가능 여부 */
+  parkingAvailable?: boolean;
+  /** 옵션(풀옵션) 항목 (예: 냉장고, 세탁기) */
+  options: string[];
   /** 관리비, 단위: 만원 */
   maintenanceFee?: number;
   /** 관리비에 포함된 항목 (예: 수도, 인터넷) */

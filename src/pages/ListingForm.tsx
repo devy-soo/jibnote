@@ -48,6 +48,7 @@ export function ListingForm() {
   const [hydrated, setHydrated] = useState(!isEdit);
   const [submitting, setSubmitting] = useState(false);
   const [extracting, setExtracting] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (isEdit && existing && !hydrated) {
@@ -208,23 +209,30 @@ export function ListingForm() {
         <div className="flex flex-col gap-4 px-5 pt-3">
           <Section label="사진">
             <div className="flex flex-wrap gap-2.5">
-              {existingPhotos.map((photo) => (
-                <div key={photo.id} className="relative h-24 w-20 flex-none overflow-hidden rounded-2xl border border-line">
-                  <img src={resolveUploadUrl(photo.url)} alt="" className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removeExistingPhoto(photo.id)}
-                    className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink text-white"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
-                      <path d="M6 6l12 12M18 6L6 18" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+              {existingPhotos.map((photo) => {
+                const url = resolveUploadUrl(photo.url);
+                return (
+                  <div key={photo.id} className="relative h-24 w-20 flex-none overflow-hidden rounded-2xl border border-line">
+                    <button type="button" onClick={() => setPreviewUrl(url)} className="block h-full w-full p-0">
+                      <img src={url} alt="" className="h-full w-full object-cover" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeExistingPhoto(photo.id)}
+                      className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink text-white"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
+                        <path d="M6 6l12 12M18 6L6 18" />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
               {newFileUrls.map((url, i) => (
                 <div key={url} className="relative h-24 w-20 flex-none overflow-hidden rounded-2xl border border-line">
-                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <button type="button" onClick={() => setPreviewUrl(url)} className="block h-full w-full p-0">
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => removeNewFile(i)}
@@ -410,6 +418,29 @@ export function ListingForm() {
           </div>
         </div>
       </form>
+
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-6"
+          onClick={() => setPreviewUrl(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setPreviewUrl(null)}
+            className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+          <img
+            src={previewUrl}
+            alt="미리보기"
+            className="max-h-full max-w-full rounded-xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </PageShell>
   );
 }

@@ -1,4 +1,4 @@
-const GEMINI_MODEL = "gemini-3.8-flash";
+const GEMINI_MODEL = "gemini-3.5-flash";
 
 export interface ExtractedListing {
   title?: string;

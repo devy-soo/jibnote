@@ -1,9 +1,18 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Photo } from "../types";
 import { resolveUploadUrl } from "../api/client";
 
-export function PhotoCarousel({ photos }: { photos: Photo[] }) {
+const SWIPE_THRESHOLD = 40;
+
+export function PhotoCarousel({
+  photos,
+  onExpand,
+}: {
+  photos: Photo[];
+  onExpand?: (index: number) => void;
+}) {
   const [index, setIndex] = useState(0);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   if (photos.length === 0) {
     return (
@@ -14,15 +23,43 @@ export function PhotoCarousel({ photos }: { photos: Photo[] }) {
   }
 
   const current = Math.min(index, photos.length - 1);
+  const goPrev = () => setIndex((i) => (i - 1 + photos.length) % photos.length);
+  const goNext = () => setIndex((i) => (i + 1) % photos.length);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dy) > Math.abs(dx)) return;
+    e.preventDefault();
+    if (dx > SWIPE_THRESHOLD) goPrev();
+    else if (dx < -SWIPE_THRESHOLD) goNext();
+    else onExpand?.(current);
+  }
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#DCE5F8]">
-      <img src={resolveUploadUrl(photos[current].url)} alt="" className="h-full w-full object-cover" />
+      <img
+        src={resolveUploadUrl(photos[current].url)}
+        alt=""
+        onClick={() => onExpand?.(current)}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="h-full w-full cursor-pointer object-cover"
+      />
       {photos.length > 1 && (
         <>
           <button
             type="button"
-            onClick={() => setIndex((i) => (i - 1 + photos.length) % photos.length)}
+            onClick={goPrev}
             className="absolute left-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/85"
             aria-label="이전 사진"
           >
@@ -32,7 +69,7 @@ export function PhotoCarousel({ photos }: { photos: Photo[] }) {
           </button>
           <button
             type="button"
-            onClick={() => setIndex((i) => (i + 1) % photos.length)}
+            onClick={goNext}
             className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/85"
             aria-label="다음 사진"
           >

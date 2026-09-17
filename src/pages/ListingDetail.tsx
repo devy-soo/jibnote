@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PageShell } from "../components/PageShell";
 import { PhotoCarousel } from "../components/PhotoCarousel";
@@ -7,11 +7,14 @@ import { StarRating } from "../components/StarRating";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { useListingStore } from "../store/useListingStore";
 import { useToast } from "../components/ToastProvider";
+import { resolveUploadUrl } from "../api/client";
 import { CHECKLIST_GROUPS } from "../constants/checklist";
 import { RATING_FIELDS } from "../constants/ratings";
 import { checklistTotals, overallScore } from "../lib/score";
 import { formatArea, formatDealPrice, formatManwon, formatSavedDate } from "../lib/format";
 import type { RatingKey } from "../types";
+
+const SWIPE_THRESHOLD = 40;
 
 type Tab = "info" | "checklist";
 
@@ -29,6 +32,8 @@ export function ListingDetail() {
   const [memoDraft, setMemoDraft] = useState<string | null>(null);
   const [visitNoteDraft, setVisitNoteDraft] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const lightboxTouchStart = useRef<{ x: number; y: number } | null>(null);
 
   if (!listing) {
     return (
@@ -55,11 +60,39 @@ export function ListingDetail() {
     patchListing(listing!.id, { ratings: { ...listing!.ratings, [key]: value } });
   }
 
+  const photoUrls = listing.photos.map((p) => resolveUploadUrl(p.url));
+
+  function lightboxPrev() {
+    setLightboxIndex((i) => (i! - 1 + photoUrls.length) % photoUrls.length);
+  }
+
+  function lightboxNext() {
+    setLightboxIndex((i) => (i! + 1) % photoUrls.length);
+  }
+
+  function handleLightboxTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    lightboxTouchStart.current = { x: t.clientX, y: t.clientY };
+  }
+
+  function handleLightboxTouchEnd(e: React.TouchEvent) {
+    const start = lightboxTouchStart.current;
+    lightboxTouchStart.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
+    e.preventDefault();
+    if (dx > 0) lightboxPrev();
+    else lightboxNext();
+  }
+
   return (
     <PageShell>
       <div className="pb-28">
         <div className="relative h-[220px]">
-          <PhotoCarousel photos={listing.photos} />
+          <PhotoCarousel photos={listing.photos} onExpand={setLightboxIndex} />
           <button
             type="button"
             onClick={() => navigate("/")}
@@ -439,6 +472,62 @@ export function ListingDetail() {
           </button>
         </div>
       </div>
+
+      {lightboxIndex != null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-6"
+          onClick={() => setLightboxIndex(null)}
+          onTouchStart={handleLightboxTouchStart}
+          onTouchEnd={handleLightboxTouchEnd}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxIndex(null)}
+            className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+          {photoUrls.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  lightboxPrev();
+                }}
+                className="absolute left-4 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14.5 5 8 12l6.5 7" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  lightboxNext();
+                }}
+                className="absolute right-4 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m9.5 5 6.5 7-6.5 7" />
+                </svg>
+              </button>
+              <span className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-white/15 px-2.5 py-1 text-[12px] font-bold text-white">
+                {lightboxIndex + 1} / {photoUrls.length}
+              </span>
+            </>
+          )}
+          <img
+            src={photoUrls[lightboxIndex]}
+            alt="매물 사진"
+            className="max-h-full max-w-full rounded-xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       <ConfirmDialog
         open={confirmDelete}

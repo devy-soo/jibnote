@@ -47,16 +47,15 @@ const PROMPT = `이 이미지는 한국 부동산 매물(전세 또는 월세) �
 
 이미지에서 확인할 수 없는 항목은 결과에서 그냥 생략해 (추측해서 지어내지 마).`;
 
-export async function extractListingFromImage(
-  buffer: Buffer,
-  mimeType: string,
-): Promise<ExtractedListing> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY가 설정되지 않았어요.");
-  }
+const MAX_ATTEMPTS = 3;
+const RETRY_STATUS = new Set([429, 503]);
 
-  const res = await fetch(
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function callGemini(buffer: Buffer, mimeType: string, apiKey: string): Promise<Response> {
+  return fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
     {
       method: "POST",
@@ -77,14 +76,34 @@ export async function extractListingFromImage(
       }),
     },
   );
+}
 
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    throw new Error(`Gemini API error ${res.status}: ${errText}`);
+export async function extractListingFromImage(
+  buffer: Buffer,
+  mimeType: string,
+): Promise<ExtractedListing> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY가 설정되지 않았어요.");
   }
 
-  const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Gemini API returned no content");
-  return JSON.parse(text) as ExtractedListing;
+  let lastError = "";
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const res = await callGemini(buffer, mimeType, apiKey);
+    if (res.ok) {
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error("Gemini API returned no content");
+      return JSON.parse(text) as ExtractedListing;
+    }
+
+    lastError = `Gemini API error ${res.status}: ${await res.text().catch(() => "")}`;
+    if (!RETRY_STATUS.has(res.status) || attempt === MAX_ATTEMPTS) {
+      throw new Error(lastError);
+    }
+    console.warn(`Gemini attempt ${attempt} failed (${res.status}), retrying...`);
+    await sleep(attempt * 1000);
+  }
+
+  throw new Error(lastError);
 }

@@ -163,9 +163,10 @@ router.put("/:id", upload.array("photos", 8), async (req: AuthedRequest, res) =>
   const data = parsed.data;
   const files = (req.files as Express.Multer.File[] | undefined) ?? [];
   const tags = data.tags ? safeParse<string[]>(data.tags, []) : [];
-  const keepPhotoIds = req.body.keepPhotoIds
-    ? safeParse<string[]>(req.body.keepPhotoIds, [])
-    : existing.photos.map((p) => p.id);
+  const existingIds = new Set(existing.photos.map((p) => p.id));
+  const photoOrder = req.body.photoOrder
+    ? safeParse<string[]>(req.body.photoOrder, existing.photos.map((p) => p.id))
+    : [...existing.photos.map((p) => p.id), ...files.map(() => "__new__")];
 
   let uploaded;
   try {
@@ -174,21 +175,30 @@ router.put("/:id", upload.array("photos", 8), async (req: AuthedRequest, res) =>
     return res.status(502).json({ error: "사진 업로드에 실패했어요." });
   }
 
-  const toRemove = existing.photos.filter((p) => !keepPhotoIds.includes(p.id));
+  const keepIds = new Set(photoOrder.filter((t) => t !== "__new__" && existingIds.has(t)));
+  const toRemove = existing.photos.filter((p) => !keepIds.has(p.id));
   await Promise.all(toRemove.map((p) => deleteImage(p.publicId)));
   if (toRemove.length) {
     await prisma.photo.deleteMany({ where: { id: { in: toRemove.map((p) => p.id) } } });
   }
 
-  const keptCount = keepPhotoIds.length;
-  if (uploaded.length) {
+  let nextNewIndex = 0;
+  const orderUpdates: { id: string; order: number }[] = [];
+  const newCreates: { url: string; publicId: string; order: number }[] = [];
+  photoOrder.forEach((token, i) => {
+    if (token === "__new__") {
+      const u = uploaded[nextNewIndex++];
+      if (u) newCreates.push({ url: u.url, publicId: u.publicId, order: i });
+    } else if (keepIds.has(token)) {
+      orderUpdates.push({ id: token, order: i });
+    }
+  });
+  await Promise.all(
+    orderUpdates.map((u) => prisma.photo.update({ where: { id: u.id }, data: { order: u.order } })),
+  );
+  if (newCreates.length) {
     await prisma.photo.createMany({
-      data: uploaded.map((u, i) => ({
-        listingId: existing.id,
-        url: u.url,
-        publicId: u.publicId,
-        order: keptCount + i,
-      })),
+      data: newCreates.map((c) => ({ listingId: existing.id, ...c })),
     });
   }
 

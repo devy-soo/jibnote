@@ -1,16 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PageShell } from "../components/PageShell";
+import { ImageCropModal } from "../components/ImageCropModal";
 import { useListingStore } from "../store/useListingStore";
 import { useToast } from "../components/ToastProvider";
 import { useObjectUrls } from "../lib/useObjectUrls";
 import { resolveUploadUrl } from "../api/client";
 import { extractListingFromPhoto } from "../api/extract";
 import { STATUS_OPTIONS } from "../constants/statuses";
-import type { DealType, ListingStatus, Photo } from "../types";
+import type { DealType, ListingStatus } from "../types";
 
 const DEAL_TYPES: DealType[] = ["전세", "월세"];
 const MAX_PHOTOS = 8;
+
+type PhotoItem =
+  | { key: string; kind: "existing"; id: string; url: string }
+  | { key: string; kind: "new"; file: File };
+
+function createKey() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 export function ListingForm() {
   const { id } = useParams();
@@ -43,12 +54,12 @@ export function ListingForm() {
   const [status, setStatus] = useState<ListingStatus>("관심");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
-  const [existingPhotos, setExistingPhotos] = useState<Photo[]>([]);
-  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [hydrated, setHydrated] = useState(!isEdit);
   const [submitting, setSubmitting] = useState(false);
-  const [extracting, setExtracting] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [extractingKey, setExtractingKey] = useState<string | null>(null);
+  const [cropKey, setCropKey] = useState<string | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (isEdit && existing && !hydrated) {
@@ -66,34 +77,63 @@ export function ListingForm() {
       setMemo(existing.memo ?? "");
       setStatus(existing.status);
       setTags(existing.tags);
-      setExistingPhotos(existing.photos);
+      setPhotos(
+        existing.photos.map((p) => ({ key: p.id, kind: "existing" as const, id: p.id, url: p.url })),
+      );
       setHydrated(true);
     }
   }, [isEdit, existing, hydrated]);
 
-  const newFileUrls = useObjectUrls(newFiles);
-  const totalPhotoCount = existingPhotos.length + newFiles.length;
+  const newFilesInOrder = useMemo(
+    () => photos.filter((p): p is Extract<PhotoItem, { kind: "new" }> => p.kind === "new"),
+    [photos],
+  );
+  const newFileUrls = useObjectUrls(newFilesInOrder.map((p) => p.file));
+
+  function displayUrl(item: PhotoItem): string {
+    if (item.kind === "existing") return resolveUploadUrl(item.url);
+    const idx = newFilesInOrder.findIndex((p) => p.key === item.key);
+    return newFileUrls[idx] ?? "";
+  }
+
+  const previewUrls = photos.map(displayUrl);
 
   function handleFiles(files: FileList | null) {
     if (!files) return;
-    const next = Array.from(files).slice(0, Math.max(0, MAX_PHOTOS - totalPhotoCount));
-    setNewFiles((prev) => [...prev, ...next]);
+    const room = Math.max(0, MAX_PHOTOS - photos.length);
+    const next = Array.from(files)
+      .slice(0, room)
+      .map((file) => ({ key: createKey(), kind: "new" as const, file }));
+    setPhotos((prev) => [...prev, ...next]);
   }
 
-  function removeExistingPhoto(photoId: string) {
-    setExistingPhotos((prev) => prev.filter((p) => p.id !== photoId));
+  function removePhoto(key: string) {
+    setPhotos((prev) => prev.filter((p) => p.key !== key));
   }
 
-  function removeNewFile(i: number) {
-    setNewFiles((prev) => prev.filter((_, j) => j !== i));
+  function setPrimary(key: string) {
+    setPhotos((prev) => {
+      const idx = prev.findIndex((p) => p.key === key);
+      if (idx <= 0) return prev;
+      const next = [...prev];
+      const [item] = next.splice(idx, 1);
+      next.unshift(item);
+      return next;
+    });
   }
 
-  async function handleExtract() {
-    const target = newFiles[newFiles.length - 1];
-    if (!target) return;
-    setExtracting(true);
+  function replaceWithCropped(key: string, blob: Blob) {
+    const file = new File([blob], "cropped.jpg", { type: "image/jpeg" });
+    setPhotos((prev) =>
+      prev.map((p) => (p.key === key ? { key: createKey(), kind: "new" as const, file } : p)),
+    );
+    setCropKey(null);
+  }
+
+  async function handleExtract(item: Extract<PhotoItem, { kind: "new" }>) {
+    setExtractingKey(item.key);
     try {
-      const ex = await extractListingFromPhoto(target);
+      const ex = await extractListingFromPhoto(item.file);
       let filled = 0;
       const apply = (has: boolean, set: () => void) => {
         if (has) {
@@ -121,7 +161,7 @@ export function ListingForm() {
     } catch {
       showToast("이미지 분석에 실패했어요. 직접 입력해 주세요");
     } finally {
-      setExtracting(false);
+      setExtractingKey(null);
     }
   }
 
@@ -142,6 +182,8 @@ export function ListingForm() {
       return;
     }
     setSubmitting(true);
+    const photoOrder = photos.map((p) => (p.kind === "existing" ? p.id : "__new__"));
+    const newPhotos = newFilesInOrder.map((p) => p.file);
     const payload = {
       title: title.trim(),
       dealType,
@@ -157,15 +199,12 @@ export function ListingForm() {
       memo: memo.trim() || undefined,
       status,
       tags,
-      newPhotos: newFiles,
+      newPhotos,
     };
 
     try {
       if (isEdit && existing) {
-        await editListing(existing.id, {
-          ...payload,
-          keepPhotoIds: existingPhotos.map((p) => p.id),
-        });
+        await editListing(existing.id, { ...payload, photoOrder });
         showToast("매물 정보를 수정했어요");
         navigate(`/listing/${existing.id}`);
       } else {
@@ -190,6 +229,8 @@ export function ListingForm() {
     );
   }
 
+  const cropItem = photos.find((p) => p.key === cropKey);
+
   return (
     <PageShell>
       <form onSubmit={handleSubmit} className="pb-28">
@@ -209,42 +250,77 @@ export function ListingForm() {
         <div className="flex flex-col gap-4 px-5 pt-3">
           <Section label="사진">
             <div className="flex flex-wrap gap-2.5">
-              {existingPhotos.map((photo) => {
-                const url = resolveUploadUrl(photo.url);
+              {photos.map((item, i) => {
+                const url = previewUrls[i];
+                const isPrimary = i === 0;
                 return (
-                  <div key={photo.id} className="relative h-24 w-20 flex-none overflow-hidden rounded-2xl border border-line">
-                    <button type="button" onClick={() => setPreviewUrl(url)} className="block h-full w-full p-0">
+                  <div
+                    key={item.key}
+                    className="relative h-24 w-20 flex-none overflow-hidden rounded-2xl border"
+                    style={{ borderColor: isPrimary ? "#2B5BE2" : "rgba(13,27,52,.1)" }}
+                  >
+                    <button type="button" onClick={() => setPreviewIndex(i)} className="block h-full w-full p-0">
                       <img src={url} alt="" className="h-full w-full object-cover" />
                     </button>
+                    {isPrimary && (
+                      <span className="absolute left-1 top-1 rounded-md bg-primary px-1.5 py-0.5 text-[9px] font-bold text-white">
+                        대표
+                      </span>
+                    )}
                     <button
                       type="button"
-                      onClick={() => removeExistingPhoto(photo.id)}
+                      onClick={() => removePhoto(item.key)}
                       className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink text-white"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
                         <path d="M6 6l12 12M18 6L6 18" />
                       </svg>
                     </button>
+                    <div className="absolute inset-x-0 bottom-0 flex justify-center gap-1 bg-gradient-to-t from-black/60 to-transparent p-1 pt-3">
+                      {!isPrimary && (
+                        <button
+                          type="button"
+                          title="대표로 설정"
+                          onClick={() => setPrimary(item.key)}
+                          className="grid h-5 w-5 place-items-center rounded-full bg-white/90"
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="#1D3FAF" stroke="#1D3FAF" strokeWidth="1">
+                            <path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.8z" />
+                          </svg>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        title="자르기"
+                        onClick={() => setCropKey(item.key)}
+                        className="grid h-5 w-5 place-items-center rounded-full bg-white/90"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0D1B34" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 2v14a2 2 0 0 0 2 2h14M18 22V8a2 2 0 0 0-2-2H2" />
+                        </svg>
+                      </button>
+                      {item.kind === "new" && (
+                        <button
+                          type="button"
+                          title="AI로 채우기"
+                          onClick={() => handleExtract(item)}
+                          disabled={extractingKey === item.key}
+                          className="grid h-5 w-5 place-items-center rounded-full bg-white/90 disabled:opacity-60"
+                        >
+                          {extractingKey === item.key ? (
+                            <span className="text-[8px] font-bold text-primary-dark">…</span>
+                          ) : (
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1D3FAF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
-              {newFileUrls.map((url, i) => (
-                <div key={url} className="relative h-24 w-20 flex-none overflow-hidden rounded-2xl border border-line">
-                  <button type="button" onClick={() => setPreviewUrl(url)} className="block h-full w-full p-0">
-                    <img src={url} alt="" className="h-full w-full object-cover" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeNewFile(i)}
-                    className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink text-white"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
-                      <path d="M6 6l12 12M18 6L6 18" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-              {totalPhotoCount < MAX_PHOTOS && (
+              {photos.length < MAX_PHOTOS && (
                 <label className="grid h-24 w-20 flex-none cursor-pointer place-items-center rounded-2xl border border-dashed border-primary/40 bg-bg-soft text-2xl font-bold text-primary">
                   +
                   <input
@@ -261,27 +337,9 @@ export function ListingForm() {
               )}
             </div>
             <p className="mt-1.5 text-[11.5px] font-medium text-ink-light">
-              매물 캡처 화면이나 직접 찍은 사진을 올려두면 나중에 비교하기 편해요 (최대 {MAX_PHOTOS}장)
+              매물 캡처 화면이나 직접 찍은 사진을 올려두면 나중에 비교하기 편해요 (최대 {MAX_PHOTOS}장).
+              별 아이콘으로 대표사진을, 자르기 아이콘으로 원하는 부분만 남길 수 있어요.
             </p>
-            {newFiles.length > 0 && (
-              <button
-                type="button"
-                onClick={handleExtract}
-                disabled={extracting}
-                className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-[#E8EEFD] py-2.5 text-[12.5px] font-bold text-primary-dark disabled:opacity-60"
-              >
-                {extracting ? (
-                  "이미지 분석 중..."
-                ) : (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1D3FAF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
-                    </svg>
-                    방금 올린 사진에서 AI로 채우기
-                  </>
-                )}
-              </button>
-            )}
           </Section>
 
           <Section label="매물 이름">
@@ -419,27 +477,66 @@ export function ListingForm() {
         </div>
       </form>
 
-      {previewUrl && (
+      {previewIndex != null && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-6"
-          onClick={() => setPreviewUrl(null)}
+          onClick={() => setPreviewIndex(null)}
         >
           <button
             type="button"
-            onClick={() => setPreviewUrl(null)}
+            onClick={() => setPreviewIndex(null)}
             className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>
+          {previewUrls.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewIndex((i) => (i! - 1 + previewUrls.length) % previewUrls.length);
+                }}
+                className="absolute left-4 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14.5 5 8 12l6.5 7" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewIndex((i) => (i! + 1) % previewUrls.length);
+                }}
+                className="absolute right-4 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m9.5 5 6.5 7-6.5 7" />
+                </svg>
+              </button>
+              <span className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-white/15 px-2.5 py-1 text-[12px] font-bold text-white">
+                {previewIndex + 1} / {previewUrls.length}
+              </span>
+            </>
+          )}
           <img
-            src={previewUrl}
+            src={previewUrls[previewIndex]}
             alt="미리보기"
             className="max-h-full max-w-full rounded-xl object-contain"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
+      )}
+
+      {cropItem && (
+        <ImageCropModal
+          src={displayUrl(cropItem)}
+          onCancel={() => setCropKey(null)}
+          onConfirm={(blob) => replaceWithCropped(cropItem.key, blob)}
+        />
       )}
     </PageShell>
   );

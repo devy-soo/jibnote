@@ -18,8 +18,11 @@ export interface ListingPayload {
   status: ListingStatus;
   tags: string[];
   newPhotos: File[];
-  /** 수정 시에만 사용: 유지할 기존 사진 id 목록 */
-  keepPhotoIds?: string[];
+  /**
+   * 수정 시에만 사용: 최종 사진 순서. 배열의 각 항목은 기존 사진 id 또는
+   * "__new__" (newPhotos의 다음 파일을 그 자리에 배치) 중 하나.
+   */
+  photoOrder?: string[];
 }
 
 type PatchFields = Partial<{
@@ -62,7 +65,7 @@ function buildFormData(payload: ListingPayload): FormData {
   if (payload.memo) fd.append("memo", payload.memo);
   fd.append("status", payload.status);
   fd.append("tags", JSON.stringify(payload.tags));
-  if (payload.keepPhotoIds) fd.append("keepPhotoIds", JSON.stringify(payload.keepPhotoIds));
+  if (payload.photoOrder) fd.append("photoOrder", JSON.stringify(payload.photoOrder));
   for (const file of payload.newPhotos) fd.append("photos", file);
   return fd;
 }

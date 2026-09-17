@@ -33,6 +33,7 @@ model Listing {
   totalFloors            Int?
   approvalDate           String?
   isViolationBuilding    Boolean?
+  isFakeListing          Boolean?
   parkingAvailable       Boolean?
   options                String   @default("[]")
   maintenanceFee         Int?

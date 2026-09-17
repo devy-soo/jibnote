@@ -247,6 +247,19 @@ export function ListingDetail() {
                 </div>
               )}
 
+              {listing.isFakeListing != null && (
+                <div
+                  className="rounded-2xl border p-3.5 text-[12.5px] font-bold"
+                  style={
+                    listing.isFakeListing
+                      ? { borderColor: "#FCA5A5", background: "#FEF2F2", color: "#DC2626" }
+                      : { borderColor: "#A7E5CC", background: "#E2F6EF", color: "#0B7355" }
+                  }
+                >
+                  {listing.isFakeListing ? "⚠ 허위매물 의심" : "허위매물 아님"}
+                </div>
+              )}
+
               {listing.options.length > 0 && (
                 <div className="rounded-3xl border border-line bg-white p-[18px]">
                   <h3 className="mb-2.5 text-[15.5px] font-bold text-ink">옵션</h3>
@@ -326,7 +339,14 @@ export function ListingDetail() {
                         {(agent.name || "중").slice(0, 1)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14px] font-bold text-ink">{agent.name || "중개사 미입력"}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="truncate text-[14px] font-bold text-ink">{agent.name || "중개사 미입력"}</p>
+                          {agent.contacted && (
+                            <span className="flex-none rounded-md bg-[#E8EEFD] px-1.5 py-0.5 text-[10px] font-bold text-[#1D3FAF]">
+                              연락함
+                            </span>
+                          )}
+                        </div>
                         {agent.phone && (
                           <p className="mt-0.5 text-[12px] font-semibold text-ink-faint">{agent.phone}</p>
                         )}

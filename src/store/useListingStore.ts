@@ -18,6 +18,7 @@ export interface ListingPayload {
   totalFloors?: number;
   approvalDate?: string;
   isViolationBuilding?: boolean;
+  isFakeListing?: boolean;
   parkingAvailable?: boolean;
   options: string[];
   maintenanceFee?: number;
@@ -78,6 +79,9 @@ function buildFormData(payload: ListingPayload): FormData {
   if (payload.approvalDate) fd.append("approvalDate", payload.approvalDate);
   if (payload.isViolationBuilding != null) {
     fd.append("isViolationBuilding", String(payload.isViolationBuilding));
+  }
+  if (payload.isFakeListing != null) {
+    fd.append("isFakeListing", String(payload.isFakeListing));
   }
   if (payload.parkingAvailable != null) {
     fd.append("parkingAvailable", String(payload.parkingAvailable));

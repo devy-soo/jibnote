@@ -10,6 +10,7 @@ export interface RatingState {
   water?: number; // 수압
   transit?: number; // 교통
   surroundings?: number; // 주변환경
+  agentKindness?: number; // 중개사 친절도
 }
 
 export type RatingKey = keyof RatingState;
@@ -22,6 +23,8 @@ export interface Photo {
 export interface Agent {
   name: string;
   phone: string;
+  /** 이 담당자와 실제로 연락/방문했는지 */
+  contacted?: boolean;
 }
 
 export interface Listing {
@@ -52,6 +55,8 @@ export interface Listing {
   approvalDate?: string;
   /** 위반건축물 여부 */
   isViolationBuilding?: boolean;
+  /** 허위매물 의심 여부 */
+  isFakeListing?: boolean;
   /** 주차 가능 여부 */
   parkingAvailable?: boolean;
   /** 옵션(풀옵션) 항목 (예: 냉장고, 세탁기) */

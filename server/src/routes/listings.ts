@@ -27,6 +27,7 @@ const RENT_TYPES = new Set(["월세", "반전세"]);
 interface Agent {
   name: string;
   phone: string;
+  contacted?: boolean;
 }
 
 function serialize(listing: Listing & { photos: Photo[] }) {
@@ -46,6 +47,7 @@ function serialize(listing: Listing & { photos: Photo[] }) {
     totalFloors: listing.totalFloors ?? undefined,
     approvalDate: listing.approvalDate ?? undefined,
     isViolationBuilding: listing.isViolationBuilding ?? undefined,
+    isFakeListing: listing.isFakeListing ?? undefined,
     parkingAvailable: listing.parkingAvailable ?? undefined,
     options: safeParse<string[]>(listing.options, []),
     maintenanceFee: listing.maintenanceFee ?? undefined,
@@ -113,6 +115,7 @@ router.post("/extract", upload.single("photo"), async (req: AuthedRequest, res) 
 const agentSchema = z.object({
   name: z.string(),
   phone: z.string(),
+  contacted: z.boolean().optional(),
 });
 
 const boolField = z
@@ -135,6 +138,7 @@ const baseFields = z.object({
   totalFloors: z.coerce.number().int().min(0).optional(),
   approvalDate: z.string().optional(),
   isViolationBuilding: boolField,
+  isFakeListing: boolField,
   parkingAvailable: boolField,
   options: z.string().optional(), // JSON string array
   maintenanceFee: z.coerce.number().int().min(0).optional(),
@@ -197,6 +201,7 @@ router.post("/", upload.array("photos", 8), async (req: AuthedRequest, res) => {
       totalFloors: data.totalFloors,
       approvalDate: data.approvalDate || null,
       isViolationBuilding: data.isViolationBuilding ?? null,
+      isFakeListing: data.isFakeListing ?? null,
       parkingAvailable: data.parkingAvailable ?? null,
       options: JSON.stringify(options),
       maintenanceFee: data.maintenanceFee,
@@ -291,6 +296,7 @@ router.put("/:id", upload.array("photos", 8), async (req: AuthedRequest, res) =>
       totalFloors: data.totalFloors,
       approvalDate: data.approvalDate || null,
       isViolationBuilding: data.isViolationBuilding ?? null,
+      isFakeListing: data.isFakeListing ?? null,
       parkingAvailable: data.parkingAvailable ?? null,
       options: JSON.stringify(options),
       maintenanceFee: data.maintenanceFee,

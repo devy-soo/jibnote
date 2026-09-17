@@ -61,6 +61,7 @@ export function ListingForm() {
   const [totalFloors, setTotalFloors] = useState("");
   const [approvalDate, setApprovalDate] = useState("");
   const [isViolationBuilding, setIsViolationBuilding] = useState<boolean | undefined>(undefined);
+  const [isFakeListing, setIsFakeListing] = useState<boolean | undefined>(undefined);
   const [parkingAvailable, setParkingAvailable] = useState<boolean | undefined>(undefined);
   const [options, setOptions] = useState<string[]>([]);
   const [maintenanceFee, setMaintenanceFee] = useState("");
@@ -98,6 +99,7 @@ export function ListingForm() {
       setTotalFloors(existing.totalFloors != null ? String(existing.totalFloors) : "");
       setApprovalDate(existing.approvalDate ?? "");
       setIsViolationBuilding(existing.isViolationBuilding ?? undefined);
+      setIsFakeListing(existing.isFakeListing ?? undefined);
       setParkingAvailable(existing.parkingAvailable ?? undefined);
       setOptions(existing.options ?? []);
       setMaintenanceFee(existing.maintenanceFee ? String(existing.maintenanceFee) : "");
@@ -168,6 +170,12 @@ export function ListingForm() {
 
   function updateAgent(i: number, field: keyof Agent, value: string) {
     setAgents((prev) => prev.map((a, idx) => (idx === i ? { ...a, [field]: value } : a)));
+  }
+
+  function toggleAgentContacted(i: number) {
+    setAgents((prev) =>
+      prev.map((a, idx) => (idx === i ? { ...a, contacted: !a.contacted } : a)),
+    );
   }
 
   function addAgentRow() {
@@ -256,7 +264,7 @@ export function ListingForm() {
     const photoOrder = photos.map((p) => (p.kind === "existing" ? p.id : "__new__"));
     const newPhotos = newFilesInOrder.map((p) => p.file);
     const cleanedAgents = agents
-      .map((a) => ({ name: a.name.trim(), phone: a.phone.trim() }))
+      .map((a) => ({ name: a.name.trim(), phone: a.phone.trim(), contacted: a.contacted }))
       .filter((a) => a.name || a.phone);
     const payload = {
       title: title.trim(),
@@ -273,6 +281,7 @@ export function ListingForm() {
       totalFloors: totalFloors ? Number(totalFloors) : undefined,
       approvalDate: approvalDate.trim() || undefined,
       isViolationBuilding,
+      isFakeListing,
       parkingAvailable,
       options,
       maintenanceFee: maintenanceFee ? Number(maintenanceFee) : undefined,
@@ -589,6 +598,9 @@ export function ListingForm() {
             <Section label="주차 가능 여부">
               <YesNoToggle value={parkingAvailable} onChange={setParkingAvailable} />
             </Section>
+            <Section label="허위매물 의심 여부">
+              <YesNoToggle value={isFakeListing} onChange={setIsFakeListing} />
+            </Section>
           </div>
 
           <Section label="옵션 / 풀옵션">
@@ -653,24 +665,38 @@ export function ListingForm() {
           <Section label="중개사무소 / 담당자">
             <div className="flex flex-col gap-2">
               {agents.map((agent, i) => (
-                <div key={i} className="flex gap-2">
-                  <TextInput
-                    value={agent.name}
-                    onChange={(v) => updateAgent(i, "name", v)}
-                    placeholder="예: 원미공인중개사 이수진"
-                  />
-                  <TextInput
-                    value={agent.phone}
-                    onChange={(v) => updateAgent(i, "phone", v)}
-                    placeholder="010-0000-0000"
-                  />
+                <div key={i} className="flex flex-col gap-1.5 rounded-2xl border border-line bg-white p-2.5">
+                  <div className="flex gap-2">
+                    <TextInput
+                      value={agent.name}
+                      onChange={(v) => updateAgent(i, "name", v)}
+                      placeholder="예: 원미공인중개사 이수진"
+                    />
+                    <TextInput
+                      value={agent.phone}
+                      onChange={(v) => updateAgent(i, "phone", v)}
+                      placeholder="010-0000-0000"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeAgentRow(i)}
+                      disabled={agents.length <= 1}
+                      className="flex-none rounded-xl border border-line bg-white px-3 text-ink-light disabled:opacity-40"
+                    >
+                      ×
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => removeAgentRow(i)}
-                    disabled={agents.length <= 1}
-                    className="flex-none rounded-xl border border-line bg-white px-3 text-ink-light disabled:opacity-40"
+                    onClick={() => toggleAgentContacted(i)}
+                    className="self-start rounded-lg px-2.5 py-1 text-[11.5px] font-bold"
+                    style={{
+                      background: agent.contacted ? "#E8EEFD" : "#F5F6FA",
+                      color: agent.contacted ? "#1D3FAF" : "#8392AE",
+                      border: `1px solid ${agent.contacted ? "#2B5BE2" : "rgba(13,27,52,.1)"}`,
+                    }}
                   >
-                    ×
+                    {agent.contacted ? "✓ 연락한 담당자" : "연락한 담당자로 표시"}
                   </button>
                 </div>
               ))}

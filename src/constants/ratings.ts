@@ -6,4 +6,5 @@ export const RATING_FIELDS: { key: RatingKey; label: string }[] = [
   { key: "water", label: "수압" },
   { key: "transit", label: "교통" },
   { key: "surroundings", label: "주변환경" },
+  { key: "agentKindness", label: "중개사 친절도" },
 ];

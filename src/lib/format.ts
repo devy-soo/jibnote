@@ -1,4 +1,7 @@
+import { RENT_TYPES } from "../constants/dealTypes";
 import type { Listing } from "../types";
+
+const SQM_PER_PYEONG = 3.305785;
 
 export function formatManwon(manwon: number): string {
   if (!manwon || manwon <= 0) return "0원";
@@ -21,14 +24,29 @@ export function formatDepositShort(manwon: number): string {
 export function formatDealPrice(
   listing: Pick<Listing, "dealType" | "deposit" | "monthlyRent">,
 ): string {
-  if (listing.dealType === "월세") {
+  if (RENT_TYPES.includes(listing.dealType)) {
     return `${formatDepositShort(listing.deposit)} / ${listing.monthlyRent ?? 0}만원`;
   }
   return formatManwon(listing.deposit);
 }
 
+export function sqmToPyeong(sqm: number): number {
+  return Math.round((sqm / SQM_PER_PYEONG) * 10) / 10;
+}
+
+export function pyeongToSqm(pyeong: number): number {
+  return Math.round(pyeong * SQM_PER_PYEONG * 100) / 100;
+}
+
+/** "75.8㎡ (22.9평)" 형태로 반환. sqm이 없으면 빈 문자열. */
+export function formatArea(sqm: number | undefined): string {
+  if (sqm == null) return "";
+  return `${sqm}㎡ (${sqmToPyeong(sqm)}평)`;
+}
+
 export function formatMeta(listing: Listing): string {
-  const parts = [listing.area, listing.floor];
+  const parts = [formatArea(listing.areaSqm), listing.floor];
+  if (listing.rooms != null) parts.push(`방 ${listing.rooms}개`);
   if (listing.walkMinutes != null) parts.push(`역 도보 ${listing.walkMinutes}분`);
   return parts.filter(Boolean).join(" · ");
 }

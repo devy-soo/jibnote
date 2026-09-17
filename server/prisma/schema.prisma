@@ -16,30 +16,34 @@ model User {
 }
 
 model Listing {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title          String
-  dealType       String
-  deposit        Int      @default(0)
-  monthlyRent    Int?
-  area           String?
-  floor          String?
-  maintenanceFee Int?
-  walkMinutes    Int?
-  address        String?
-  agentName      String?
-  agentPhone     String?
-  memo           String?
-  tags           String   @default("[]")
-  status         String   @default("관심")
-  saved          Boolean  @default(true)
-  checklist      String   @default("{}")
-  ratings        String   @default("{}")
-  visitNote      String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  photos         Photo[]
+  id                     String   @id @default(cuid())
+  userId                 String
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title                  String
+  listingNumber          String?
+  platform               String?
+  dealType               String
+  deposit                Int      @default(0)
+  monthlyRent            Int?
+  areaSqm                Float?
+  rooms                  Int?
+  floor                  String?
+  maintenanceFee         Int?
+  maintenanceFeeIncludes String   @default("[]")
+  walkMinutes            Int?
+  nearestStation         String?
+  address                String?
+  agents                 String   @default("[]")
+  memo                   String?
+  tags                   String   @default("[]")
+  status                 String   @default("관심")
+  saved                  Boolean  @default(true)
+  checklist              String   @default("{}")
+  ratings                String   @default("{}")
+  visitNote              String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  photos                 Photo[]
 
   @@index([userId])
 }

@@ -21,20 +21,32 @@ const upload = multer({
   },
 });
 
+const DEAL_TYPES = ["전세", "월세", "반전세", "매매"] as const;
+const RENT_TYPES = new Set(["월세", "반전세"]);
+
+interface Agent {
+  name: string;
+  phone: string;
+}
+
 function serialize(listing: Listing & { photos: Photo[] }) {
   return {
     id: listing.id,
     title: listing.title,
+    listingNumber: listing.listingNumber ?? undefined,
+    platform: listing.platform ?? undefined,
     dealType: listing.dealType,
     deposit: listing.deposit,
     monthlyRent: listing.monthlyRent ?? undefined,
-    area: listing.area ?? undefined,
+    areaSqm: listing.areaSqm ?? undefined,
+    rooms: listing.rooms ?? undefined,
     floor: listing.floor ?? undefined,
     maintenanceFee: listing.maintenanceFee ?? undefined,
+    maintenanceFeeIncludes: safeParse<string[]>(listing.maintenanceFeeIncludes, []),
     walkMinutes: listing.walkMinutes ?? undefined,
+    nearestStation: listing.nearestStation ?? undefined,
     address: listing.address ?? undefined,
-    agentName: listing.agentName ?? undefined,
-    agentPhone: listing.agentPhone ?? undefined,
+    agents: safeParse<Agent[]>(listing.agents, []),
     memo: listing.memo ?? undefined,
     tags: safeParse(listing.tags, []),
     status: listing.status,
@@ -91,22 +103,42 @@ router.post("/extract", upload.single("photo"), async (req: AuthedRequest, res) 
   }
 });
 
+const agentSchema = z.object({
+  name: z.string(),
+  phone: z.string(),
+});
+
 const baseFields = z.object({
   title: z.string().min(1),
-  dealType: z.enum(["전세", "월세"]),
+  listingNumber: z.string().optional(),
+  platform: z.string().optional(),
+  dealType: z.enum(DEAL_TYPES),
   deposit: z.coerce.number().int().min(0).default(0),
   monthlyRent: z.coerce.number().int().min(0).optional(),
-  area: z.string().optional(),
+  areaSqm: z.coerce.number().min(0).optional(),
+  rooms: z.coerce.number().int().min(0).optional(),
   floor: z.string().optional(),
   maintenanceFee: z.coerce.number().int().min(0).optional(),
+  maintenanceFeeIncludes: z.string().optional(), // JSON string array
   walkMinutes: z.coerce.number().int().min(0).optional(),
+  nearestStation: z.string().optional(),
   address: z.string().optional(),
-  agentName: z.string().optional(),
-  agentPhone: z.string().optional(),
+  agents: z.string().optional(), // JSON string array of {name, phone}
   memo: z.string().optional(),
   status: z.enum(["관심", "방문예정", "방문완료", "계약진행"]).default("관심"),
   tags: z.string().optional(), // JSON string array
 });
+
+function parseAgents(raw: string | undefined): Agent[] {
+  if (!raw) return [];
+  const parsed = safeParse<unknown[]>(raw, []);
+  const result: Agent[] = [];
+  for (const item of parsed) {
+    const check = agentSchema.safeParse(item);
+    if (check.success && (check.data.name || check.data.phone)) result.push(check.data);
+  }
+  return result;
+}
 
 router.post("/", upload.array("photos", 8), async (req: AuthedRequest, res) => {
   const parsed = baseFields.safeParse(req.body);
@@ -116,6 +148,10 @@ router.post("/", upload.array("photos", 8), async (req: AuthedRequest, res) => {
   const data = parsed.data;
   const files = (req.files as Express.Multer.File[] | undefined) ?? [];
   const tags = data.tags ? safeParse<string[]>(data.tags, []) : [];
+  const maintenanceFeeIncludes = data.maintenanceFeeIncludes
+    ? safeParse<string[]>(data.maintenanceFeeIncludes, [])
+    : [];
+  const agents = parseAgents(data.agents);
 
   let uploaded;
   try {
@@ -128,16 +164,20 @@ router.post("/", upload.array("photos", 8), async (req: AuthedRequest, res) => {
     data: {
       userId: req.userId!,
       title: data.title,
+      listingNumber: data.listingNumber || null,
+      platform: data.platform || null,
       dealType: data.dealType,
       deposit: data.deposit,
-      monthlyRent: data.dealType === "월세" ? data.monthlyRent ?? 0 : null,
-      area: data.area || null,
+      monthlyRent: RENT_TYPES.has(data.dealType) ? data.monthlyRent ?? 0 : null,
+      areaSqm: data.areaSqm,
+      rooms: data.rooms,
       floor: data.floor || null,
       maintenanceFee: data.maintenanceFee,
+      maintenanceFeeIncludes: JSON.stringify(maintenanceFeeIncludes),
       walkMinutes: data.walkMinutes,
+      nearestStation: data.nearestStation || null,
       address: data.address || null,
-      agentName: data.agentName || null,
-      agentPhone: data.agentPhone || null,
+      agents: JSON.stringify(agents),
       memo: data.memo || null,
       tags: JSON.stringify(tags),
       status: data.status,
@@ -163,6 +203,10 @@ router.put("/:id", upload.array("photos", 8), async (req: AuthedRequest, res) =>
   const data = parsed.data;
   const files = (req.files as Express.Multer.File[] | undefined) ?? [];
   const tags = data.tags ? safeParse<string[]>(data.tags, []) : [];
+  const maintenanceFeeIncludes = data.maintenanceFeeIncludes
+    ? safeParse<string[]>(data.maintenanceFeeIncludes, [])
+    : [];
+  const agents = parseAgents(data.agents);
   const existingIds = new Set(existing.photos.map((p) => p.id));
   const photoOrder = req.body.photoOrder
     ? safeParse<string[]>(req.body.photoOrder, existing.photos.map((p) => p.id))
@@ -206,16 +250,20 @@ router.put("/:id", upload.array("photos", 8), async (req: AuthedRequest, res) =>
     where: { id: existing.id },
     data: {
       title: data.title,
+      listingNumber: data.listingNumber || null,
+      platform: data.platform || null,
       dealType: data.dealType,
       deposit: data.deposit,
-      monthlyRent: data.dealType === "월세" ? data.monthlyRent ?? 0 : null,
-      area: data.area || null,
+      monthlyRent: RENT_TYPES.has(data.dealType) ? data.monthlyRent ?? 0 : null,
+      areaSqm: data.areaSqm,
+      rooms: data.rooms,
       floor: data.floor || null,
       maintenanceFee: data.maintenanceFee,
+      maintenanceFeeIncludes: JSON.stringify(maintenanceFeeIncludes),
       walkMinutes: data.walkMinutes,
+      nearestStation: data.nearestStation || null,
       address: data.address || null,
-      agentName: data.agentName || null,
-      agentPhone: data.agentPhone || null,
+      agents: JSON.stringify(agents),
       memo: data.memo || null,
       tags: JSON.stringify(tags),
       status: data.status,

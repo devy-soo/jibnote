@@ -1,49 +1,72 @@
 const GEMINI_MODEL = "gemini-3.5-flash";
 
+export interface ExtractedAgent {
+  name?: string;
+  phone?: string;
+}
+
 export interface ExtractedListing {
   title?: string;
-  dealType?: "전세" | "월세";
+  listingNumber?: string;
+  platform?: string;
+  dealType?: "전세" | "월세" | "반전세" | "매매";
   deposit?: number;
   monthlyRent?: number;
-  area?: string;
+  areaSqm?: number;
+  rooms?: number;
   floor?: string;
   maintenanceFee?: number;
   walkMinutes?: number;
+  nearestStation?: string;
   address?: string;
-  agentName?: string;
-  agentPhone?: string;
+  agents?: ExtractedAgent[];
 }
 
 const RESPONSE_SCHEMA = {
   type: "object",
   properties: {
     title: { type: "string" },
-    dealType: { type: "string", enum: ["전세", "월세"] },
+    listingNumber: { type: "string" },
+    platform: { type: "string" },
+    dealType: { type: "string", enum: ["전세", "월세", "반전세", "매매"] },
     deposit: { type: "number" },
     monthlyRent: { type: "number" },
-    area: { type: "string" },
+    areaSqm: { type: "number" },
+    rooms: { type: "number" },
     floor: { type: "string" },
     maintenanceFee: { type: "number" },
     walkMinutes: { type: "number" },
+    nearestStation: { type: "string" },
     address: { type: "string" },
-    agentName: { type: "string" },
-    agentPhone: { type: "string" },
+    agents: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          phone: { type: "string" },
+        },
+      },
+    },
   },
 };
 
-const PROMPT = `이 이미지는 한국 부동산 매물(전세 또는 월세) 정보 화면 캡처야. 아래 항목을 이미지에서 최대한 정확히 읽어서 추출해줘. 단위는 전부 "만원" 기준 숫자로 변환해줘 (예: "1억 5천" -> 15000, "1,500" -> 1500).
+const PROMPT = `이 이미지는 한국 부동산 매물(전세/월세/반전세/매매) 정보 화면 캡처야. 아래 항목을 이미지에서 최대한 정확히 읽어서 추출해줘. 금액은 전부 "만원" 기준 숫자로 변환해줘 (예: "1억 5천" -> 15000, "1,500" -> 1500).
 
 - title: 단지명 또는 매물명
-- dealType: "전세" 또는 "월세" 중 하나
-- deposit: 보증금(전세금 포함), 만원 단위 숫자
-- monthlyRent: 월세, 만원 단위 숫자 (월세일 때만)
-- area: 전용면적 (원문 그대로, 예: "26.4㎡ (8평)")
+- listingNumber: 매물번호 (있는 경우)
+- platform: 이 화면이 어느 부동산 플랫폼인지 (KB부동산, 네이버부동산, 직방, 다방, 피터팬의좋은방구하기 등 화면에서 유추 가능하면)
+- dealType: "전세" / "월세" / "반전세" / "매매" 중 하나
+- deposit: 보증금(전세금·매매가 포함), 만원 단위 숫자
+- monthlyRent: 월세, 만원 단위 숫자 (월세·반전세일 때만)
+- areaSqm: 전용면적, 제곱미터(㎡) 단위 숫자만 (평수만 있으면 3.3058을 곱해서 ㎡로 환산)
+- rooms: 방 개수, 숫자만
 - floor: 층/방향 (예: "3층 / 남향")
 - maintenanceFee: 관리비, 만원 단위 숫자
 - walkMinutes: 역까지 도보 시간, 분 단위 숫자
+- nearestStation: 가까운 지하철역 이름 (예: "2호선 강남역")
 - address: 주소
-- agentName: 중개사무소명 또는 담당자명
-- agentPhone: 중개사 연락처
+- agents: 중개사무소/담당자 목록. 여러 명이면 배열로 모두 담고, 각 항목은 name(중개사무소명 또는 담당자명), phone(연락처)
 
 이미지에서 확인할 수 없는 항목은 결과에서 그냥 생략해 (추측해서 지어내지 마).`;
 

@@ -1,18 +1,26 @@
 import { api } from "./client";
 import type { DealType } from "../types";
 
+export interface ExtractedAgent {
+  name?: string;
+  phone?: string;
+}
+
 export interface ExtractedListing {
   title?: string;
+  listingNumber?: string;
+  platform?: string;
   dealType?: DealType;
   deposit?: number;
   monthlyRent?: number;
-  area?: string;
+  areaSqm?: number;
+  rooms?: number;
   floor?: string;
   maintenanceFee?: number;
   walkMinutes?: number;
+  nearestStation?: string;
   address?: string;
-  agentName?: string;
-  agentPhone?: string;
+  agents?: ExtractedAgent[];
 }
 
 export async function extractListingFromPhoto(file: File): Promise<ExtractedListing> {

@@ -10,7 +10,7 @@ import { useToast } from "../components/ToastProvider";
 import { CHECKLIST_GROUPS } from "../constants/checklist";
 import { RATING_FIELDS } from "../constants/ratings";
 import { checklistTotals, overallScore } from "../lib/score";
-import { formatDealPrice, formatManwon, formatSavedDate } from "../lib/format";
+import { formatArea, formatDealPrice, formatManwon, formatSavedDate } from "../lib/format";
 import type { RatingKey } from "../types";
 
 type Tab = "info" | "checklist";
@@ -89,11 +89,21 @@ export function ListingDetail() {
         </div>
 
         <div className="relative -mt-6 rounded-t-3xl bg-bg-screen px-5 pt-5">
-          <div className="mb-2.5 flex items-center gap-1.5">
+          <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
             <StatusBadge status={listing.status} />
             <span className="text-[11.5px] font-semibold text-ink-muted">
               {listing.dealType} · {formatSavedDate(listing.createdAt)} 저장
             </span>
+            {listing.platform && (
+              <span className="rounded-md bg-chip px-1.5 py-0.5 text-[10.5px] font-bold text-ink-soft">
+                {listing.platform}
+              </span>
+            )}
+            {listing.listingNumber && (
+              <span className="text-[11px] font-semibold text-ink-light">
+                매물번호 {listing.listingNumber}
+              </span>
+            )}
           </div>
           <h1 className="mb-1.5 text-[22px] font-bold tracking-tight text-ink">{listing.title}</h1>
           <p className="mb-1 text-[19px] font-bold tracking-tight text-primary-dark">
@@ -152,16 +162,37 @@ export function ListingDetail() {
           {tab === "info" ? (
             <div className="animate-fade-in flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-2.5">
-                <InfoTile label="전용 면적" value={listing.area || "미입력"} />
+                <InfoTile label="전용 면적" value={formatArea(listing.areaSqm) || "미입력"} />
+                <InfoTile label="방 개수" value={listing.rooms != null ? `방 ${listing.rooms}개` : "미입력"} />
                 <InfoTile label="층 / 방향" value={listing.floor || "미입력"} />
                 <InfoTile
-                  label="관리비"
-                  value={listing.maintenanceFee ? formatManwon(listing.maintenanceFee) : "미입력"}
+                  label="지하철역"
+                  value={
+                    listing.nearestStation
+                      ? listing.walkMinutes
+                        ? `${listing.nearestStation} · 도보 ${listing.walkMinutes}분`
+                        : listing.nearestStation
+                      : "미입력"
+                  }
                 />
-                <InfoTile
-                  label="역까지"
-                  value={listing.walkMinutes ? `도보 ${listing.walkMinutes}분` : "미입력"}
-                />
+              </div>
+
+              <div className="rounded-3xl border border-line bg-white p-[18px]">
+                <div className="mb-1 flex items-baseline justify-between">
+                  <h3 className="text-[15.5px] font-bold text-ink">관리비</h3>
+                  <span className="text-[15px] font-bold text-ink">
+                    {listing.maintenanceFee ? formatManwon(listing.maintenanceFee) : "미입력"}
+                  </span>
+                </div>
+                {listing.maintenanceFeeIncludes.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {listing.maintenanceFeeIncludes.map((item) => (
+                      <span key={item} className="rounded-lg bg-[#E2F6EF] px-2 py-1 text-[11px] font-bold text-[#0B7355]">
+                        {item} 포함
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="rounded-3xl border border-line bg-white p-[18px]">
@@ -204,25 +235,29 @@ export function ListingDetail() {
                 )}
               </div>
 
-              {(listing.agentName || listing.agentPhone) && (
-                <div className="flex items-center gap-3 rounded-3xl border border-line bg-white p-[18px]">
-                  <div className="grid h-11 w-11 flex-none place-items-center rounded-full bg-gradient-to-br from-[#7FA6FF] to-[#2450C8] text-[15px] font-bold text-white">
-                    {(listing.agentName || "중").slice(0, 1)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-bold text-ink">{listing.agentName || "중개사 미입력"}</p>
-                    {listing.agentPhone && (
-                      <p className="mt-0.5 text-[12px] font-semibold text-ink-faint">{listing.agentPhone}</p>
-                    )}
-                  </div>
-                  {listing.agentPhone && (
-                    <a
-                      href={`tel:${listing.agentPhone}`}
-                      className="flex-none rounded-xl bg-chip px-3 py-2 text-[12px] font-bold text-primary-dark"
-                    >
-                      전화
-                    </a>
-                  )}
+              {listing.agents.length > 0 && (
+                <div className="flex flex-col gap-2.5">
+                  {listing.agents.map((agent, i) => (
+                    <div key={i} className="flex items-center gap-3 rounded-3xl border border-line bg-white p-[18px]">
+                      <div className="grid h-11 w-11 flex-none place-items-center rounded-full bg-gradient-to-br from-[#7FA6FF] to-[#2450C8] text-[15px] font-bold text-white">
+                        {(agent.name || "중").slice(0, 1)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[14px] font-bold text-ink">{agent.name || "중개사 미입력"}</p>
+                        {agent.phone && (
+                          <p className="mt-0.5 text-[12px] font-semibold text-ink-faint">{agent.phone}</p>
+                        )}
+                      </div>
+                      {agent.phone && (
+                        <a
+                          href={`tel:${agent.phone}`}
+                          className="flex-none rounded-xl bg-chip px-3 py-2 text-[12px] font-bold text-primary-dark"
+                        >
+                          전화
+                        </a>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

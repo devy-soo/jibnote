@@ -1,19 +1,24 @@
 import { create } from "zustand";
 import { api } from "../api/client";
-import type { ChecklistState, DealType, Listing, ListingStatus, RatingState } from "../types";
+import { RENT_TYPES } from "../constants/dealTypes";
+import type { Agent, ChecklistState, DealType, Listing, ListingStatus, RatingState } from "../types";
 
 export interface ListingPayload {
   title: string;
+  listingNumber?: string;
+  platform?: string;
   dealType: DealType;
   deposit: number;
   monthlyRent?: number;
-  area?: string;
+  areaSqm?: number;
+  rooms?: number;
   floor?: string;
   maintenanceFee?: number;
+  maintenanceFeeIncludes: string[];
   walkMinutes?: number;
+  nearestStation?: string;
   address?: string;
-  agentName?: string;
-  agentPhone?: string;
+  agents: Agent[];
   memo?: string;
   status: ListingStatus;
   tags: string[];
@@ -50,18 +55,22 @@ interface ListingStore {
 function buildFormData(payload: ListingPayload): FormData {
   const fd = new FormData();
   fd.append("title", payload.title);
+  if (payload.listingNumber) fd.append("listingNumber", payload.listingNumber);
+  if (payload.platform) fd.append("platform", payload.platform);
   fd.append("dealType", payload.dealType);
   fd.append("deposit", String(payload.deposit));
-  if (payload.dealType === "월세" && payload.monthlyRent != null) {
+  if (RENT_TYPES.includes(payload.dealType) && payload.monthlyRent != null) {
     fd.append("monthlyRent", String(payload.monthlyRent));
   }
-  if (payload.area) fd.append("area", payload.area);
+  if (payload.areaSqm != null) fd.append("areaSqm", String(payload.areaSqm));
+  if (payload.rooms != null) fd.append("rooms", String(payload.rooms));
   if (payload.floor) fd.append("floor", payload.floor);
   if (payload.maintenanceFee != null) fd.append("maintenanceFee", String(payload.maintenanceFee));
+  fd.append("maintenanceFeeIncludes", JSON.stringify(payload.maintenanceFeeIncludes));
   if (payload.walkMinutes != null) fd.append("walkMinutes", String(payload.walkMinutes));
+  if (payload.nearestStation) fd.append("nearestStation", payload.nearestStation);
   if (payload.address) fd.append("address", payload.address);
-  if (payload.agentName) fd.append("agentName", payload.agentName);
-  if (payload.agentPhone) fd.append("agentPhone", payload.agentPhone);
+  fd.append("agents", JSON.stringify(payload.agents));
   if (payload.memo) fd.append("memo", payload.memo);
   fd.append("status", payload.status);
   fd.append("tags", JSON.stringify(payload.tags));

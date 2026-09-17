@@ -8,10 +8,13 @@ import { useObjectUrls } from "../lib/useObjectUrls";
 import { resolveUploadUrl } from "../api/client";
 import { extractListingFromPhoto } from "../api/extract";
 import { STATUS_OPTIONS } from "../constants/statuses";
-import type { DealType, ListingStatus } from "../types";
+import { DEAL_TYPES, RENT_TYPES, depositLabel } from "../constants/dealTypes";
+import { PLATFORM_PRESETS, MAINTENANCE_FEE_ITEMS } from "../constants/platforms";
+import { sqmToPyeong } from "../lib/format";
+import type { Agent, DealType, ListingStatus } from "../types";
 
-const DEAL_TYPES: DealType[] = ["전세", "월세"];
 const MAX_PHOTOS = 8;
+const EMPTY_AGENT: Agent = { name: "", phone: "" };
 
 type PhotoItem =
   | { key: string; kind: "existing"; id: string; url: string }
@@ -40,16 +43,20 @@ export function ListingForm() {
   );
 
   const [title, setTitle] = useState("");
+  const [listingNumber, setListingNumber] = useState("");
+  const [platform, setPlatform] = useState("");
   const [dealType, setDealType] = useState<DealType>("월세");
   const [deposit, setDeposit] = useState("");
   const [monthlyRent, setMonthlyRent] = useState("");
-  const [area, setArea] = useState("");
+  const [areaSqm, setAreaSqm] = useState("");
+  const [rooms, setRooms] = useState("");
   const [floor, setFloor] = useState("");
   const [maintenanceFee, setMaintenanceFee] = useState("");
+  const [maintenanceFeeIncludes, setMaintenanceFeeIncludes] = useState<string[]>([]);
   const [walkMinutes, setWalkMinutes] = useState("");
+  const [nearestStation, setNearestStation] = useState("");
   const [address, setAddress] = useState("");
-  const [agentName, setAgentName] = useState("");
-  const [agentPhone, setAgentPhone] = useState("");
+  const [agents, setAgents] = useState<Agent[]>([EMPTY_AGENT]);
   const [memo, setMemo] = useState("");
   const [status, setStatus] = useState<ListingStatus>("관심");
   const [tags, setTags] = useState<string[]>([]);
@@ -60,21 +67,26 @@ export function ListingForm() {
   const [cropKey, setCropKey] = useState<string | null>(null);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [captureFile, setCaptureFile] = useState<File | null>(null);
+  const [capturePreviewOpen, setCapturePreviewOpen] = useState(false);
   const [extracting, setExtracting] = useState(false);
 
   useEffect(() => {
     if (isEdit && existing && !hydrated) {
       setTitle(existing.title);
+      setListingNumber(existing.listingNumber ?? "");
+      setPlatform(existing.platform ?? "");
       setDealType(existing.dealType);
       setDeposit(existing.deposit ? String(existing.deposit) : "");
       setMonthlyRent(existing.monthlyRent ? String(existing.monthlyRent) : "");
-      setArea(existing.area ?? "");
+      setAreaSqm(existing.areaSqm != null ? String(existing.areaSqm) : "");
+      setRooms(existing.rooms != null ? String(existing.rooms) : "");
       setFloor(existing.floor ?? "");
       setMaintenanceFee(existing.maintenanceFee ? String(existing.maintenanceFee) : "");
+      setMaintenanceFeeIncludes(existing.maintenanceFeeIncludes ?? []);
       setWalkMinutes(existing.walkMinutes ? String(existing.walkMinutes) : "");
+      setNearestStation(existing.nearestStation ?? "");
       setAddress(existing.address ?? "");
-      setAgentName(existing.agentName ?? "");
-      setAgentPhone(existing.agentPhone ?? "");
+      setAgents(existing.agents.length ? existing.agents : [EMPTY_AGENT]);
       setMemo(existing.memo ?? "");
       setStatus(existing.status);
       setTags(existing.tags);
@@ -100,6 +112,8 @@ export function ListingForm() {
   }
 
   const previewUrls = photos.map(displayUrl);
+  const areaSqmNum = Number(areaSqm);
+  const pyeongPreview = areaSqmNum > 0 ? sqmToPyeong(areaSqmNum) : null;
 
   function handleFiles(files: FileList | null) {
     if (!files) return;
@@ -133,6 +147,24 @@ export function ListingForm() {
     setCropKey(null);
   }
 
+  function updateAgent(i: number, field: keyof Agent, value: string) {
+    setAgents((prev) => prev.map((a, idx) => (idx === i ? { ...a, [field]: value } : a)));
+  }
+
+  function addAgentRow() {
+    setAgents((prev) => [...prev, { ...EMPTY_AGENT }]);
+  }
+
+  function removeAgentRow(i: number) {
+    setAgents((prev) => (prev.length <= 1 ? prev : prev.filter((_, idx) => idx !== i)));
+  }
+
+  function toggleFeeItem(item: string) {
+    setMaintenanceFeeIncludes((prev) =>
+      prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item],
+    );
+  }
+
   async function handleExtract() {
     if (!captureFile) return;
     setExtracting(true);
@@ -146,16 +178,21 @@ export function ListingForm() {
         }
       };
       apply(!!ex.title, () => setTitle(ex.title!));
+      apply(!!ex.listingNumber, () => setListingNumber(ex.listingNumber!));
+      apply(!!ex.platform, () => setPlatform(ex.platform!));
       apply(!!ex.dealType, () => setDealType(ex.dealType!));
       apply(ex.deposit != null, () => setDeposit(String(ex.deposit)));
       apply(ex.monthlyRent != null, () => setMonthlyRent(String(ex.monthlyRent)));
-      apply(!!ex.area, () => setArea(ex.area!));
+      apply(ex.areaSqm != null, () => setAreaSqm(String(ex.areaSqm)));
+      apply(ex.rooms != null, () => setRooms(String(ex.rooms)));
       apply(!!ex.floor, () => setFloor(ex.floor!));
       apply(ex.maintenanceFee != null, () => setMaintenanceFee(String(ex.maintenanceFee)));
       apply(ex.walkMinutes != null, () => setWalkMinutes(String(ex.walkMinutes)));
+      apply(!!ex.nearestStation, () => setNearestStation(ex.nearestStation!));
       apply(!!ex.address, () => setAddress(ex.address!));
-      apply(!!ex.agentName, () => setAgentName(ex.agentName!));
-      apply(!!ex.agentPhone, () => setAgentPhone(ex.agentPhone!));
+      apply(!!ex.agents?.length, () =>
+        setAgents(ex.agents!.map((a) => ({ name: a.name ?? "", phone: a.phone ?? "" }))),
+      );
 
       showToast(
         filled > 0
@@ -188,18 +225,25 @@ export function ListingForm() {
     setSubmitting(true);
     const photoOrder = photos.map((p) => (p.kind === "existing" ? p.id : "__new__"));
     const newPhotos = newFilesInOrder.map((p) => p.file);
+    const cleanedAgents = agents
+      .map((a) => ({ name: a.name.trim(), phone: a.phone.trim() }))
+      .filter((a) => a.name || a.phone);
     const payload = {
       title: title.trim(),
+      listingNumber: listingNumber.trim() || undefined,
+      platform: platform.trim() || undefined,
       dealType,
       deposit: Number(deposit) || 0,
-      monthlyRent: dealType === "월세" ? Number(monthlyRent) || 0 : undefined,
-      area: area.trim() || undefined,
+      monthlyRent: RENT_TYPES.includes(dealType) ? Number(monthlyRent) || 0 : undefined,
+      areaSqm: areaSqm ? Number(areaSqm) : undefined,
+      rooms: rooms ? Number(rooms) : undefined,
       floor: floor.trim() || undefined,
       maintenanceFee: maintenanceFee ? Number(maintenanceFee) : undefined,
+      maintenanceFeeIncludes,
       walkMinutes: walkMinutes ? Number(walkMinutes) : undefined,
+      nearestStation: nearestStation.trim() || undefined,
       address: address.trim() || undefined,
-      agentName: agentName.trim() || undefined,
-      agentPhone: agentPhone.trim() || undefined,
+      agents: cleanedAgents,
       memo: memo.trim() || undefined,
       status,
       tags,
@@ -333,18 +377,22 @@ export function ListingForm() {
             <div className="rounded-2xl border border-primary/25 bg-[#F5F8FE] p-3.5">
               {captureFile ? (
                 <div className="flex items-center gap-3">
-                  <div className="relative h-16 w-16 flex-none overflow-hidden rounded-xl border border-line">
+                  <button
+                    type="button"
+                    onClick={() => setCapturePreviewOpen(true)}
+                    className="relative h-16 w-16 flex-none overflow-hidden rounded-xl border border-line p-0"
+                  >
                     <img src={captureUrl} alt="" className="h-full w-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setCaptureFile(null)}
-                      className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink text-white"
-                    >
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
-                        <path d="M6 6l12 12M18 6L6 18" />
-                      </svg>
-                    </button>
-                  </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCaptureFile(null)}
+                    className="grid h-7 w-7 flex-none place-items-center rounded-full bg-ink text-white"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </button>
                   <button
                     type="button"
                     onClick={handleExtract}
@@ -392,6 +440,32 @@ export function ListingForm() {
             <TextInput value={title} onChange={setTitle} placeholder="예: 상동 두산위브, 역곡동 신동아 빌라" />
           </Section>
 
+          <div className="grid grid-cols-2 gap-3">
+            <Section label="매물번호">
+              <TextInput value={listingNumber} onChange={setListingNumber} placeholder="예: 252875034" />
+            </Section>
+            <Section label="플랫폼">
+              <TextInput value={platform} onChange={setPlatform} placeholder="예: 네이버부동산" />
+            </Section>
+          </div>
+          <div className="-mt-2.5 flex flex-wrap gap-1.5">
+            {PLATFORM_PRESETS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPlatform(p)}
+                className="rounded-lg px-2.5 py-1 text-[11.5px] font-bold"
+                style={{
+                  background: platform === p ? "#E8EEFD" : "#fff",
+                  color: platform === p ? "#1D3FAF" : "#5B6B8C",
+                  border: `1px solid ${platform === p ? "#2B5BE2" : "rgba(13,27,52,.1)"}`,
+                }}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+
           <Section label="거래 유형">
             <div className="flex gap-2">
               {DEAL_TYPES.map((d) => (
@@ -412,25 +486,60 @@ export function ListingForm() {
             </div>
           </Section>
 
-          <Section label={dealType === "월세" ? "보증금 (만원)" : "전세금 (만원)"}>
+          <Section label={depositLabel(dealType)}>
             <TextInput value={deposit} onChange={setDeposit} placeholder="예: 3000" type="number" />
           </Section>
 
-          {dealType === "월세" && (
+          {RENT_TYPES.includes(dealType) && (
             <Section label="월세 (만원)">
               <TextInput value={monthlyRent} onChange={setMonthlyRent} placeholder="예: 55" type="number" />
             </Section>
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <Section label="전용 면적">
-              <TextInput value={area} onChange={setArea} placeholder="예: 26.4㎡ (8평)" />
+            <Section label="전용 면적 (㎡)">
+              <TextInput value={areaSqm} onChange={setAreaSqm} placeholder="예: 26.4" type="number" />
+              {pyeongPreview != null && (
+                <p className="mt-1 text-[11px] font-semibold text-primary-dark">≈ {pyeongPreview}평</p>
+              )}
+            </Section>
+            <Section label="방 개수">
+              <TextInput value={rooms} onChange={setRooms} placeholder="예: 2" type="number" />
             </Section>
             <Section label="층 / 방향">
               <TextInput value={floor} onChange={setFloor} placeholder="예: 3층 / 남향" />
             </Section>
             <Section label="관리비 (만원)">
               <TextInput value={maintenanceFee} onChange={setMaintenanceFee} placeholder="예: 8" type="number" />
+            </Section>
+          </div>
+
+          <Section label="관리비 포함 항목">
+            <div className="flex flex-wrap gap-1.5">
+              {MAINTENANCE_FEE_ITEMS.map((item) => {
+                const active = maintenanceFeeIncludes.includes(item);
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => toggleFeeItem(item)}
+                    className="rounded-lg px-2.5 py-1.5 text-[12px] font-bold"
+                    style={{
+                      background: active ? "#E2F6EF" : "#fff",
+                      color: active ? "#0B7355" : "#5B6B8C",
+                      border: `1px solid ${active ? "#0B7355" : "rgba(13,27,52,.1)"}`,
+                    }}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Section label="가까운 지하철역">
+              <TextInput value={nearestStation} onChange={setNearestStation} placeholder="예: 2호선 강남역" />
             </Section>
             <Section label="역까지 도보 (분)">
               <TextInput value={walkMinutes} onChange={setWalkMinutes} placeholder="예: 8" type="number" />
@@ -441,14 +550,39 @@ export function ListingForm() {
             <TextInput value={address} onChange={setAddress} placeholder="예: 경기 부천시 원미로 55" />
           </Section>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Section label="중개사무소 / 담당자">
-              <TextInput value={agentName} onChange={setAgentName} placeholder="예: 원미공인중개사 이수진" />
-            </Section>
-            <Section label="중개사 연락처">
-              <TextInput value={agentPhone} onChange={setAgentPhone} placeholder="010-0000-0000" />
-            </Section>
-          </div>
+          <Section label="중개사무소 / 담당자">
+            <div className="flex flex-col gap-2">
+              {agents.map((agent, i) => (
+                <div key={i} className="flex gap-2">
+                  <TextInput
+                    value={agent.name}
+                    onChange={(v) => updateAgent(i, "name", v)}
+                    placeholder="예: 원미공인중개사 이수진"
+                  />
+                  <TextInput
+                    value={agent.phone}
+                    onChange={(v) => updateAgent(i, "phone", v)}
+                    placeholder="010-0000-0000"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeAgentRow(i)}
+                    disabled={agents.length <= 1}
+                    className="flex-none rounded-xl border border-line bg-white px-3 text-ink-light disabled:opacity-40"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addAgentRow}
+                className="self-start text-[12.5px] font-bold text-primary"
+              >
+                + 담당자 추가
+              </button>
+            </div>
+          </Section>
 
           <Section label="상태">
             <div className="flex flex-wrap gap-2">
@@ -577,6 +711,29 @@ export function ListingForm() {
         </div>
       )}
 
+      {capturePreviewOpen && captureUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-6"
+          onClick={() => setCapturePreviewOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setCapturePreviewOpen(false)}
+            className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+          <img
+            src={captureUrl}
+            alt="캡처 미리보기"
+            className="max-h-full max-w-full rounded-xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
       {cropItem && (
         <ImageCropModal
           src={displayUrl(cropItem)}
@@ -615,7 +772,7 @@ function TextInput({
       placeholder={placeholder}
       type={type}
       inputMode={type === "number" ? "numeric" : undefined}
-      className="w-full rounded-2xl border border-line bg-white px-3.5 py-3 text-[13.5px] font-medium text-ink outline-none focus:border-primary"
+      className="w-full min-w-0 rounded-2xl border border-line bg-white px-3.5 py-3 text-[13.5px] font-medium text-ink outline-none focus:border-primary"
     />
   );
 }

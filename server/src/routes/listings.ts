@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "../db";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
 import { uploadImage, deleteImage } from "../cloudinary";
+import { extractListingFromImage } from "../gemini";
 import type { Listing, Photo } from "@prisma/client";
 
 const router = Router();
@@ -75,6 +76,19 @@ router.get("/", async (req: AuthedRequest, res) => {
     orderBy: { createdAt: "desc" },
   });
   res.json({ listings: listings.map(serialize) });
+});
+
+router.post("/extract", upload.single("photo"), async (req: AuthedRequest, res) => {
+  const file = req.file as Express.Multer.File | undefined;
+  if (!file) return res.status(400).json({ error: "이미지가 필요해요." });
+
+  try {
+    const extracted = await extractListingFromImage(file.buffer, file.mimetype);
+    res.json({ extracted });
+  } catch (err) {
+    console.error("Gemini extract failed:", err);
+    res.status(502).json({ error: "이미지 분석에 실패했어요. 직접 입력해 주세요." });
+  }
 });
 
 const baseFields = z.object({

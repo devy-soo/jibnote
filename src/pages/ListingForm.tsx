@@ -5,6 +5,7 @@ import { useListingStore } from "../store/useListingStore";
 import { useToast } from "../components/ToastProvider";
 import { useObjectUrls } from "../lib/useObjectUrls";
 import { resolveUploadUrl } from "../api/client";
+import { extractListingFromPhoto } from "../api/extract";
 import { STATUS_OPTIONS } from "../constants/statuses";
 import type { DealType, ListingStatus, Photo } from "../types";
 
@@ -46,6 +47,7 @@ export function ListingForm() {
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [hydrated, setHydrated] = useState(!isEdit);
   const [submitting, setSubmitting] = useState(false);
+  const [extracting, setExtracting] = useState(false);
 
   useEffect(() => {
     if (isEdit && existing && !hydrated) {
@@ -83,6 +85,43 @@ export function ListingForm() {
 
   function removeNewFile(i: number) {
     setNewFiles((prev) => prev.filter((_, j) => j !== i));
+  }
+
+  async function handleExtract() {
+    const target = newFiles[newFiles.length - 1];
+    if (!target) return;
+    setExtracting(true);
+    try {
+      const ex = await extractListingFromPhoto(target);
+      let filled = 0;
+      const apply = (has: boolean, set: () => void) => {
+        if (has) {
+          set();
+          filled++;
+        }
+      };
+      apply(!!ex.title, () => setTitle(ex.title!));
+      apply(!!ex.dealType, () => setDealType(ex.dealType!));
+      apply(ex.deposit != null, () => setDeposit(String(ex.deposit)));
+      apply(ex.monthlyRent != null, () => setMonthlyRent(String(ex.monthlyRent)));
+      apply(!!ex.area, () => setArea(ex.area!));
+      apply(!!ex.floor, () => setFloor(ex.floor!));
+      apply(ex.maintenanceFee != null, () => setMaintenanceFee(String(ex.maintenanceFee)));
+      apply(ex.walkMinutes != null, () => setWalkMinutes(String(ex.walkMinutes)));
+      apply(!!ex.address, () => setAddress(ex.address!));
+      apply(!!ex.agentName, () => setAgentName(ex.agentName!));
+      apply(!!ex.agentPhone, () => setAgentPhone(ex.agentPhone!));
+
+      showToast(
+        filled > 0
+          ? `${filled}개 항목을 채웠어요. 확인 후 저장해 주세요`
+          : "이미지에서 읽을 수 있는 정보가 없었어요",
+      );
+    } catch {
+      showToast("이미지 분석에 실패했어요. 직접 입력해 주세요");
+    } finally {
+      setExtracting(false);
+    }
   }
 
   function addTag() {
@@ -216,6 +255,25 @@ export function ListingForm() {
             <p className="mt-1.5 text-[11.5px] font-medium text-ink-light">
               매물 캡처 화면이나 직접 찍은 사진을 올려두면 나중에 비교하기 편해요 (최대 {MAX_PHOTOS}장)
             </p>
+            {newFiles.length > 0 && (
+              <button
+                type="button"
+                onClick={handleExtract}
+                disabled={extracting}
+                className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-[#E8EEFD] py-2.5 text-[12.5px] font-bold text-primary-dark disabled:opacity-60"
+              >
+                {extracting ? (
+                  "이미지 분석 중..."
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1D3FAF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
+                    </svg>
+                    방금 올린 사진에서 AI로 채우기
+                  </>
+                )}
+              </button>
+            )}
           </Section>
 
           <Section label="매물 이름">

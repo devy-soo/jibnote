@@ -60,6 +60,11 @@ export function ListingDetail() {
     patchListing(listing!.id, { ratings: { ...listing!.ratings, [key]: value } });
   }
 
+  function setAgentKindness(i: number, value: number) {
+    const nextAgents = listing!.agents.map((a, idx) => (idx === i ? { ...a, kindness: value } : a));
+    patchListing(listing!.id, { agents: nextAgents });
+  }
+
   const photoUrls = listing.photos.map((p) => resolveUploadUrl(p.url));
 
   function lightboxPrev() {
@@ -334,31 +339,41 @@ export function ListingDetail() {
               {listing.agents.length > 0 && (
                 <div className="flex flex-col gap-2.5">
                   {listing.agents.map((agent, i) => (
-                    <div key={i} className="flex items-center gap-3 rounded-3xl border border-line bg-white p-[18px]">
-                      <div className="grid h-11 w-11 flex-none place-items-center rounded-full bg-gradient-to-br from-[#7FA6FF] to-[#2450C8] text-[15px] font-bold text-white">
-                        {(agent.name || "중").slice(0, 1)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <p className="truncate text-[14px] font-bold text-ink">{agent.name || "중개사 미입력"}</p>
-                          {agent.contacted && (
-                            <span className="flex-none rounded-md bg-[#E8EEFD] px-1.5 py-0.5 text-[10px] font-bold text-[#1D3FAF]">
-                              연락함
-                            </span>
+                    <div key={i} className="rounded-3xl border border-line bg-white p-[18px]">
+                      <div className="flex items-center gap-3">
+                        <div className="grid h-11 w-11 flex-none place-items-center rounded-full bg-gradient-to-br from-[#7FA6FF] to-[#2450C8] text-[15px] font-bold text-white">
+                          {(agent.name || "중").slice(0, 1)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="truncate text-[14px] font-bold text-ink">{agent.name || "중개사 미입력"}</p>
+                            {agent.contacted && (
+                              <span className="flex-none rounded-md bg-[#E8EEFD] px-1.5 py-0.5 text-[10px] font-bold text-[#1D3FAF]">
+                                연락함
+                              </span>
+                            )}
+                          </div>
+                          {agent.phone && (
+                            <p className="mt-0.5 text-[12px] font-semibold text-ink-faint">{agent.phone}</p>
                           )}
                         </div>
                         {agent.phone && (
-                          <p className="mt-0.5 text-[12px] font-semibold text-ink-faint">{agent.phone}</p>
+                          <a
+                            href={`tel:${agent.phone}`}
+                            className="flex-none rounded-xl bg-chip px-3 py-2 text-[12px] font-bold text-primary-dark"
+                          >
+                            전화
+                          </a>
                         )}
                       </div>
-                      {agent.phone && (
-                        <a
-                          href={`tel:${agent.phone}`}
-                          className="flex-none rounded-xl bg-chip px-3 py-2 text-[12px] font-bold text-primary-dark"
-                        >
-                          전화
-                        </a>
-                      )}
+                      <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
+                        <span className="text-[12px] font-semibold text-ink-muted">친절도</span>
+                        <StarRating
+                          value={agent.kindness ?? 0}
+                          onChange={(v) => setAgentKindness(i, v)}
+                          size={18}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>

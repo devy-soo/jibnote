@@ -45,6 +45,7 @@ type PatchFields = Partial<{
   visitNote: string;
   checklist: ChecklistState;
   ratings: RatingState;
+  agents: Agent[];
 }>;
 
 interface ListingStore {

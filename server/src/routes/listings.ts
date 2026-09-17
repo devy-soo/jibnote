@@ -28,6 +28,7 @@ interface Agent {
   name: string;
   phone: string;
   contacted?: boolean;
+  kindness?: number;
 }
 
 function serialize(listing: Listing & { photos: Photo[] }) {
@@ -116,6 +117,7 @@ const agentSchema = z.object({
   name: z.string(),
   phone: z.string(),
   contacted: z.boolean().optional(),
+  kindness: z.number().min(0).max(5).optional(),
 });
 
 const boolField = z
@@ -324,6 +326,7 @@ const patchSchema = z.object({
   ratings: z
     .record(z.string(), z.number())
     .optional(),
+  agents: z.array(agentSchema).optional(),
 });
 
 router.patch("/:id", async (req: AuthedRequest, res) => {
@@ -347,6 +350,7 @@ router.patch("/:id", async (req: AuthedRequest, res) => {
         ? { checklist: JSON.stringify(patch.checklist) }
         : {}),
       ...(patch.ratings !== undefined ? { ratings: JSON.stringify(patch.ratings) } : {}),
+      ...(patch.agents !== undefined ? { agents: JSON.stringify(patch.agents) } : {}),
     },
     include: { photos: true },
   });

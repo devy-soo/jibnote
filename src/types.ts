@@ -10,7 +10,6 @@ export interface RatingState {
   water?: number; // 수압
   transit?: number; // 교통
   surroundings?: number; // 주변환경
-  agentKindness?: number; // 중개사 친절도
 }
 
 export type RatingKey = keyof RatingState;
@@ -25,6 +24,8 @@ export interface Agent {
   phone: string;
   /** 이 담당자와 실제로 연락/방문했는지 */
   contacted?: boolean;
+  /** 이 담당자의 친절도 별점 (1~5) */
+  kindness?: number;
 }
 
 export interface Listing {

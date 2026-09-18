@@ -28,6 +28,7 @@ export interface ExtractedListing {
   nearestStation?: string;
   address?: string;
   agents?: ExtractedAgent[];
+  photoBox?: { xmin: number; ymin: number; xmax: number; ymax: number };
 }
 
 export async function extractListingFromPhoto(file: File): Promise<ExtractedListing> {

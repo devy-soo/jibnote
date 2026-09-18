@@ -27,6 +27,8 @@ export interface ExtractedListing {
   nearestStation?: string;
   address?: string;
   agents?: ExtractedAgent[];
+  /** 캡처 이미지 안에 매물 사진(집 내부/외부)이 있으면 그 영역, 0~1000 정규화 좌표 */
+  photoBox?: { xmin: number; ymin: number; xmax: number; ymax: number };
 }
 
 const RESPONSE_SCHEMA = {
@@ -62,6 +64,15 @@ const RESPONSE_SCHEMA = {
         },
       },
     },
+    photoBox: {
+      type: "object",
+      properties: {
+        xmin: { type: "number" },
+        ymin: { type: "number" },
+        xmax: { type: "number" },
+        ymax: { type: "number" },
+      },
+    },
   },
 };
 
@@ -88,6 +99,7 @@ const PROMPT = `이 이미지는 한국 부동산 매물(전세/월세/반전세
 - nearestStation: 가까운 지하철역 이름 (예: "2호선 강남역")
 - address: 주소
 - agents: 중개사무소/담당자 목록. 여러 명이면 배열로 모두 담고, 각 항목은 name(중개사무소명 또는 담당자명), phone(연락처)
+- photoBox: 이미지 안에 집 내부/외부를 찍은 매물 사진(실제 방·거실·건물 외관 사진)이 포함돼 있으면, 그 사진 영역의 bounding box를 xmin, ymin, xmax, ymax로 담아줘. 좌표는 이미지 전체 너비/높이를 1000으로 봤을 때의 정규화된 값이야 (왼쪽 위가 0,0). 여러 장이면 가장 큰/대표 사진 하나만. 지도, 아이콘, 로고, 표 같은 건 매물 사진이 아니니까 제외하고, 매물 사진이 전혀 없으면 photoBox는 생략해.
 
 이미지에서 확인할 수 없는 항목은 결과에서 그냥 생략해 (추측해서 지어내지 마).`;
 

@@ -16,6 +16,7 @@ import {
   OPTION_ITEMS,
 } from "../constants/platforms";
 import { sqmToPyeong } from "../lib/format";
+import { cropImageByBox } from "../lib/cropImage";
 import type { Agent, DealType, ListingStatus } from "../types";
 
 const MAX_PHOTOS = 8;
@@ -233,9 +234,29 @@ export function ListingForm() {
         setAgents(ex.agents!.map((a) => ({ name: a.name ?? "", phone: a.phone ?? "" }))),
       );
 
+      let addedPhoto = false;
+      const box = ex.photoBox;
+      if (
+        box &&
+        box.xmax > box.xmin &&
+        box.ymax > box.ymin &&
+        box.xmin >= 0 &&
+        box.ymax <= 1000 &&
+        photos.length < MAX_PHOTOS
+      ) {
+        try {
+          const blob = await cropImageByBox(captureFile, box);
+          const file = new File([blob], "capture-photo.jpg", { type: "image/jpeg" });
+          setPhotos((prev) => [...prev, { key: createKey(), kind: "new" as const, file }]);
+          addedPhoto = true;
+        } catch {
+          // 사진 추출 실패는 조용히 넘어가고 나머지 정보만 채운 채로 진행
+        }
+      }
+
       showToast(
-        filled > 0
-          ? `${filled}개 항목을 채웠어요. 확인 후 저장해 주세요`
+        filled > 0 || addedPhoto
+          ? `${filled}개 항목을 채웠어요${addedPhoto ? ", 매물 사진도 1장 추가했어요" : ""}. 확인 후 저장해 주세요`
           : "이미지에서 읽을 수 있는 정보가 없었어요",
       );
       setStep("form");
@@ -469,69 +490,6 @@ export function ListingForm() {
         </div>
 
         <div className="flex flex-col gap-4 px-5 pt-3">
-          <Section label="AI로 매물 정보 채우기">
-            <div className="rounded-2xl border border-primary/25 bg-[#F5F8FE] p-3.5">
-              {captureFile ? (
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setCapturePreviewOpen(true)}
-                    className="relative h-16 w-16 flex-none overflow-hidden rounded-xl border border-line p-0"
-                  >
-                    <img src={captureUrl} alt="" className="h-full w-full object-cover" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCaptureFile(null)}
-                    className="grid h-7 w-7 flex-none place-items-center rounded-full bg-ink text-white"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
-                      <path d="M6 6l12 12M18 6L6 18" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleExtract}
-                    disabled={extracting}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-3 text-[12.5px] font-bold text-white disabled:opacity-60"
-                  >
-                    {extracting ? (
-                      "분석 중..."
-                    ) : (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
-                        </svg>
-                        이 사진으로 채우기
-                      </>
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-white py-3.5 text-[12.5px] font-bold text-primary-dark">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1D3FAF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
-                  </svg>
-                  캡처 이미지 올리기
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) setCaptureFile(f);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-              )}
-            </div>
-            <p className="mt-1.5 text-[11.5px] font-medium text-ink-light">
-              부동산 앱에서 캡처한 매물 정보 화면을 올리면 아래 항목들을 AI가 자동으로 채워줘요.
-              이 사진은 위 매물 사진첩에는 저장되지 않아요.
-            </p>
-          </Section>
-
           <Section label="사진">
             <div className="flex flex-wrap gap-2.5">
               {photos.map((item, i) => {
@@ -958,29 +916,6 @@ export function ListingForm() {
           <img
             src={previewUrls[previewIndex]}
             alt="미리보기"
-            className="max-h-full max-w-full rounded-xl object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
-
-      {capturePreviewOpen && captureUrl && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-6"
-          onClick={() => setCapturePreviewOpen(false)}
-        >
-          <button
-            type="button"
-            onClick={() => setCapturePreviewOpen(false)}
-            className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
-          <img
-            src={captureUrl}
-            alt="캡처 미리보기"
             className="max-h-full max-w-full rounded-xl object-contain"
             onClick={(e) => e.stopPropagation()}
           />

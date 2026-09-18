@@ -1,11 +1,21 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { prisma } from "../db";
 import { signToken, requireAuth, AuthedRequest } from "../middleware/auth";
 import { deleteImage } from "../cloudinary";
 
 const router = Router();
+
+// 로그인/회원가입/탈퇴처럼 비밀번호를 검증하는 요청은 무차별 대입을 막기 위해 제한.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "요청이 너무 많아요. 잠시 후 다시 시도해주세요." },
+});
 
 function toPublicUser(user: { id: string; email: string }) {
   return { id: user.id, email: user.email };
@@ -16,7 +26,7 @@ const credentialsSchema = z.object({
   password: z.string().min(6, "비밀번호는 6자 이상이어야 합니다."),
 });
 
-router.post("/signup", async (req, res) => {
+router.post("/signup", authLimiter, async (req, res) => {
   const parsed = credentialsSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.issues[0].message });
@@ -36,7 +46,7 @@ router.post("/signup", async (req, res) => {
   res.status(201).json({ token, user: toPublicUser(user) });
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", authLimiter, async (req, res) => {
   const parsed = credentialsSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "이메일과 비밀번호를 입력해주세요." });
@@ -67,7 +77,7 @@ const deleteAccountSchema = z.object({
   password: z.string().min(1, "비밀번호를 입력해주세요."),
 });
 
-router.delete("/me", requireAuth, async (req: AuthedRequest, res) => {
+router.delete("/me", requireAuth, authLimiter, async (req: AuthedRequest, res) => {
   const parsed = deleteAccountSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.issues[0].message });

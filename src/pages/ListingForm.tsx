@@ -342,6 +342,69 @@ export function ListingForm() {
         </div>
 
         <div className="flex flex-col gap-4 px-5 pt-3">
+          <Section label="AI로 매물 정보 채우기">
+            <div className="rounded-2xl border border-primary/25 bg-[#F5F8FE] p-3.5">
+              {captureFile ? (
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCapturePreviewOpen(true)}
+                    className="relative h-16 w-16 flex-none overflow-hidden rounded-xl border border-line p-0"
+                  >
+                    <img src={captureUrl} alt="" className="h-full w-full object-cover" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCaptureFile(null)}
+                    className="grid h-7 w-7 flex-none place-items-center rounded-full bg-ink text-white"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExtract}
+                    disabled={extracting}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-3 text-[12.5px] font-bold text-white disabled:opacity-60"
+                  >
+                    {extracting ? (
+                      "분석 중..."
+                    ) : (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
+                        </svg>
+                        이 사진으로 채우기
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-white py-3.5 text-[12.5px] font-bold text-primary-dark">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1D3FAF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
+                  </svg>
+                  캡처 이미지 올리기
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) setCaptureFile(f);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+            <p className="mt-1.5 text-[11.5px] font-medium text-ink-light">
+              부동산 앱에서 캡처한 매물 정보 화면을 올리면 아래 항목들을 AI가 자동으로 채워줘요.
+              이 사진은 위 매물 사진첩에는 저장되지 않아요.
+            </p>
+          </Section>
+
           <Section label="사진">
             <div className="flex flex-wrap gap-2.5">
               {photos.map((item, i) => {
@@ -416,69 +479,6 @@ export function ListingForm() {
             <p className="mt-1.5 text-[11.5px] font-medium text-ink-light">
               직접 찍은 사진을 올려두면 나중에 비교하기 편해요 (최대 {MAX_PHOTOS}장).
               별 아이콘으로 대표사진을, 자르기 아이콘으로 원하는 부분만 남길 수 있어요.
-            </p>
-          </Section>
-
-          <Section label="AI로 매물 정보 채우기">
-            <div className="rounded-2xl border border-primary/25 bg-[#F5F8FE] p-3.5">
-              {captureFile ? (
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setCapturePreviewOpen(true)}
-                    className="relative h-16 w-16 flex-none overflow-hidden rounded-xl border border-line p-0"
-                  >
-                    <img src={captureUrl} alt="" className="h-full w-full object-cover" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCaptureFile(null)}
-                    className="grid h-7 w-7 flex-none place-items-center rounded-full bg-ink text-white"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
-                      <path d="M6 6l12 12M18 6L6 18" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleExtract}
-                    disabled={extracting}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-3 text-[12.5px] font-bold text-white disabled:opacity-60"
-                  >
-                    {extracting ? (
-                      "분석 중..."
-                    ) : (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
-                        </svg>
-                        이 사진으로 채우기
-                      </>
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-white py-3.5 text-[12.5px] font-bold text-primary-dark">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1D3FAF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
-                  </svg>
-                  캡처 이미지 올리기
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) setCaptureFile(f);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-              )}
-            </div>
-            <p className="mt-1.5 text-[11.5px] font-medium text-ink-light">
-              부동산 앱에서 캡처한 매물 정보 화면을 올리면 아래 항목들을 AI가 자동으로 채워줘요.
-              이 사진은 위 매물 사진첩에는 저장되지 않아요.
             </p>
           </Section>
 

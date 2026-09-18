@@ -11,12 +11,14 @@ import { FILTER_OPTIONS } from "../constants/statuses";
 import { overallScore } from "../lib/score";
 import type { ListingStatus } from "../types";
 
-type SortMode = "recent" | "score-desc" | "score-asc";
+type SortMode = "recent" | "score-desc" | "score-asc" | "deposit-asc" | "rent-asc";
 
 const SORT_LABEL: Record<SortMode, string> = {
   recent: "최근 저장순",
   "score-desc": "내 점수 높은순",
   "score-asc": "내 점수 낮은순",
+  "deposit-asc": "보증금순",
+  "rent-asc": "월세순",
 };
 
 export function ListingList() {
@@ -38,11 +40,13 @@ export function ListingList() {
     const q = query.trim();
     if (q) {
       list = list.filter((l) =>
-        [l.title, l.address, l.memo, l.tags.join(" ")].join(" ").includes(q),
+        [l.title, l.address, l.nearestStation, l.memo, l.tags.join(" ")].join(" ").includes(q),
       );
     }
     list = [...list].sort((a, b) => {
       if (sort === "recent") return b.createdAt - a.createdAt;
+      if (sort === "deposit-asc") return a.deposit - b.deposit;
+      if (sort === "rent-asc") return (a.monthlyRent ?? 0) - (b.monthlyRent ?? 0);
       const sa = overallScore(a.ratings) ?? -1;
       const sb = overallScore(b.ratings) ?? -1;
       return sort === "score-desc" ? sb - sa : sa - sb;
@@ -96,7 +100,7 @@ export function ListingList() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="단지명, 지역, 메모 검색"
+              placeholder="단지명, 지역, 지하철역, 메모 검색"
               className="min-w-0 flex-1 border-0 bg-transparent text-[13.5px] font-medium text-ink outline-none placeholder:text-ink-light"
             />
           </div>

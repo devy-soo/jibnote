@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { PageShell } from "../components/PageShell";
 import { ListingCard } from "../components/ListingCard";
 import { EmptyState } from "../components/EmptyState";
+import { DeleteAccountDialog } from "../components/DeleteAccountDialog";
+import { useToast } from "../components/ToastProvider";
 import { useListingStore } from "../store/useListingStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { FILTER_OPTIONS } from "../constants/statuses";
@@ -23,10 +25,13 @@ export function ListingList() {
   const toggleSaved = useListingStore((s) => s.toggleSaved);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const deleteAccount = useAuthStore((s) => s.deleteAccount);
+  const { showToast } = useToast();
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"전체" | ListingStatus>("전체");
   const [sort, setSort] = useState<SortMode>("recent");
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
 
   const visible = useMemo(() => {
     let list = listings.filter((l) => filter === "전체" || l.status === filter);
@@ -51,13 +56,23 @@ export function ListingList() {
         <div className="px-5 pb-3.5 pt-7">
           <div className="mb-2.5 flex items-center justify-between gap-3">
             <p className="truncate text-[11.5px] font-semibold text-ink-light">{user?.email}</p>
-            <button
-              type="button"
-              onClick={logout}
-              className="flex-none text-[11.5px] font-bold text-ink-light"
-            >
-              로그아웃
-            </button>
+            <div className="flex flex-none items-center gap-2.5">
+              <button
+                type="button"
+                onClick={logout}
+                className="text-[11.5px] font-bold text-ink-light"
+              >
+                로그아웃
+              </button>
+              <span className="text-[11px] text-line">|</span>
+              <button
+                type="button"
+                onClick={() => setDeleteAccountOpen(true)}
+                className="text-[11.5px] font-bold text-ink-light"
+              >
+                회원 탈퇴
+              </button>
+            </div>
           </div>
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
@@ -157,6 +172,15 @@ export function ListingList() {
           </button>
         </div>
       </div>
+
+      <DeleteAccountDialog
+        open={deleteAccountOpen}
+        onCancel={() => setDeleteAccountOpen(false)}
+        onConfirm={async (password) => {
+          await deleteAccount(password);
+          showToast("탈퇴 처리됐어요. 그동안 이용해 주셔서 감사해요");
+        }}
+      />
     </PageShell>
   );
 }

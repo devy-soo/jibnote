@@ -16,6 +16,7 @@ interface AuthStore {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  deleteAccount: (password: string) => Promise<void>;
 }
 
 function extractErrorMessage(err: unknown, fallback: string): string {
@@ -85,6 +86,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   logout: () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setAuthToken(null);
+    set({ token: null, user: null });
+  },
+
+  deleteAccount: async (password) => {
+    try {
+      await api.delete("/auth/me", { data: { password } });
+    } catch (err) {
+      throw new Error(extractErrorMessage(err, "회원 탈퇴에 실패했어요."));
+    }
     localStorage.removeItem(STORAGE_KEY);
     setAuthToken(null);
     set({ token: null, user: null });

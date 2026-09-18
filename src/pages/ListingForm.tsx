@@ -82,6 +82,7 @@ export function ListingForm() {
   const [captureFile, setCaptureFile] = useState<File | null>(null);
   const [capturePreviewOpen, setCapturePreviewOpen] = useState(false);
   const [extracting, setExtracting] = useState(false);
+  const [step, setStep] = useState<"capture" | "form">(isEdit ? "form" : "capture");
 
   useEffect(() => {
     if (isEdit && existing && !hydrated) {
@@ -237,6 +238,7 @@ export function ListingForm() {
           ? `${filled}개 항목을 채웠어요. 확인 후 저장해 주세요`
           : "이미지에서 읽을 수 있는 정보가 없었어요",
       );
+      setStep("form");
     } catch {
       showToast("이미지 분석에 실패했어요. 직접 입력해 주세요");
     } finally {
@@ -324,6 +326,131 @@ export function ListingForm() {
   }
 
   const cropItem = photos.find((p) => p.key === cropKey);
+
+  if (step === "capture") {
+    return (
+      <PageShell>
+        <div className="pb-10">
+          <div className="flex items-center gap-3 px-5 pb-2 pt-6">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="grid h-9 w-9 flex-none place-items-center rounded-xl bg-white shadow-sm"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0D1B34" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.5 5 8 12l6.5 7" />
+              </svg>
+            </button>
+            <h1 className="text-[17px] font-bold text-ink">새 매물 저장</h1>
+          </div>
+
+          <div className="flex flex-col items-center gap-5 px-5 pt-12 text-center">
+            <div className="grid h-16 w-16 flex-none place-items-center rounded-2xl bg-[#E8EEFD]">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1D3FAF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-[18px] font-bold text-ink">캡처 이미지로 빠르게 채워보세요</h2>
+              <p className="mt-1.5 text-[13px] font-medium leading-relaxed text-ink-light">
+                부동산 앱에서 캡처한 매물 정보 화면을 올리면
+                <br />
+                AI가 매물 이름, 가격, 면적 같은 항목을 자동으로 채워줘요.
+              </p>
+            </div>
+
+            <div className="w-full max-w-sm">
+              {captureFile ? (
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCapturePreviewOpen(true)}
+                    className="relative h-44 w-full overflow-hidden rounded-2xl border border-line p-0"
+                  >
+                    <img src={captureUrl} alt="" className="h-full w-full object-cover" />
+                  </button>
+                  <div className="flex w-full gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCaptureFile(null)}
+                      className="flex-none rounded-xl border border-line bg-white px-4 py-3 text-[12.5px] font-bold text-ink-soft"
+                    >
+                      다시 선택
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleExtract}
+                      disabled={extracting}
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-3 text-[13px] font-bold text-white disabled:opacity-60"
+                    >
+                      {extracting ? (
+                        "분석 중..."
+                      ) : (
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
+                          </svg>
+                          이 사진으로 채우기
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40 bg-[#F5F8FE] py-12 text-[13px] font-bold text-primary-dark">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1D3FAF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
+                  </svg>
+                  캡처 이미지 올리기
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) setCaptureFile(f);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setStep("form")}
+              className="mt-1 text-[12.5px] font-bold text-ink-light underline underline-offset-2"
+            >
+              사진 없이 직접 입력할게요
+            </button>
+          </div>
+        </div>
+
+        {capturePreviewOpen && captureUrl && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-6"
+            onClick={() => setCapturePreviewOpen(false)}
+          >
+            <button
+              type="button"
+              onClick={() => setCapturePreviewOpen(false)}
+              className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+            <img
+              src={captureUrl}
+              alt="캡처 미리보기"
+              className="max-h-full max-w-full rounded-xl object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell>

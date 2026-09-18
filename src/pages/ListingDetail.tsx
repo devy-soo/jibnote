@@ -8,6 +8,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { useListingStore } from "../store/useListingStore";
 import { useToast } from "../components/ToastProvider";
 import { resolveUploadUrl } from "../api/client";
+import { RENT_TYPES } from "../constants/dealTypes";
 import { CHECKLIST_GROUPS } from "../constants/checklist";
 import { RATING_FIELDS } from "../constants/ratings";
 import { checklistTotals, overallScore } from "../lib/score";
@@ -211,6 +212,32 @@ export function ListingDetail() {
 
           {tab === "info" ? (
             <div className="animate-fade-in flex flex-col gap-4">
+              <div className="rounded-3xl border border-line bg-white p-[18px]">
+                <div className="mb-1 flex items-baseline justify-between">
+                  <h3 className="text-[15.5px] font-bold text-ink">관리비</h3>
+                  <span className="text-[15px] font-bold text-ink">
+                    {listing.maintenanceFee ? formatManwon(listing.maintenanceFee) : "미입력"}
+                  </span>
+                </div>
+                {listing.maintenanceFeeIncludes.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {listing.maintenanceFeeIncludes.map((item) => (
+                      <span key={item} className="rounded-lg bg-[#E2F6EF] px-2 py-1 text-[11px] font-bold text-[#0B7355]">
+                        {item} 포함
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {RENT_TYPES.includes(listing.dealType) && (
+                  <div className="mt-3 flex items-baseline justify-between border-t border-line pt-3">
+                    <span className="text-[12.5px] font-semibold text-ink-muted">월세+관리비 합계</span>
+                    <span className="text-[15px] font-bold text-primary-dark">
+                      {formatManwon((listing.monthlyRent ?? 0) + (listing.maintenanceFee ?? 0))} / 월
+                    </span>
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-2.5">
                 <InfoTile label="전용 면적" value={formatArea(listing.areaSqm) || "미입력"} />
                 <InfoTile label="방 개수" value={listing.rooms != null ? `방 ${listing.rooms}개` : "미입력"} />
@@ -277,24 +304,6 @@ export function ListingDetail() {
                   </div>
                 </div>
               )}
-
-              <div className="rounded-3xl border border-line bg-white p-[18px]">
-                <div className="mb-1 flex items-baseline justify-between">
-                  <h3 className="text-[15.5px] font-bold text-ink">관리비</h3>
-                  <span className="text-[15px] font-bold text-ink">
-                    {listing.maintenanceFee ? formatManwon(listing.maintenanceFee) : "미입력"}
-                  </span>
-                </div>
-                {listing.maintenanceFeeIncludes.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {listing.maintenanceFeeIncludes.map((item) => (
-                      <span key={item} className="rounded-lg bg-[#E2F6EF] px-2 py-1 text-[11px] font-bold text-[#0B7355]">
-                        {item} 포함
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
 
               <div className="rounded-3xl border border-line bg-white p-[18px]">
                 <div className="mb-4 flex items-baseline justify-between">

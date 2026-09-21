@@ -12,6 +12,8 @@ const preferencesSchema = z.object({
   maxMonthlyRent: z.number().int().min(0).optional(),
   minAreaSqm: z.number().min(0).optional(),
   minRooms: z.number().int().min(0).optional(),
+  minFloor: z.number().int().optional(),
+  desiredDirection: z.string().optional(),
   desiredStation: z.string().optional(),
   requiredOptions: z.array(z.string()).default([]),
   requireParking: z.boolean().optional(),

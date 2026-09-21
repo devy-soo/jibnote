@@ -23,6 +23,10 @@ export interface Preferences {
   minAreaSqm?: number;
   /** 방 개수 하한 */
   minRooms?: number;
+  /** 층수 하한 (listing.floor 텍스트에서 숫자를 추출해 비교) */
+  minFloor?: number;
+  /** 원하는 방향 (예: "남향", listing.floor 텍스트에 포함돼 있는지로 비교) */
+  desiredDirection?: string;
   /** 원하는 지역/역 (자유 텍스트, 부분 일치) */
   desiredStation?: string;
   /** 꼭 있었으면 하는 옵션 항목들 */

@@ -19,6 +19,8 @@ export const BUILDING_TYPE_PRESETS = [
   "근린생활시설",
 ];
 
+export const DIRECTION_PRESETS = ["남향", "남동향", "남서향", "동향", "서향", "북향", "북동향", "북서향"];
+
 export const OPTION_ITEMS = [
   "냉장고",
   "세탁기",

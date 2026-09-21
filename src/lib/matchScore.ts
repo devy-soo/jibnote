@@ -5,6 +5,13 @@ export interface MatchCriterion {
   met: boolean;
 }
 
+/** listing.floor는 "3층 / 남향" 같은 자유 텍스트라, 층수만 정규식으로 뽑아낸다. */
+function parseFloorNumber(floor?: string): number | null {
+  if (!floor) return null;
+  const match = floor.match(/(-?\d+)\s*층/);
+  return match ? Number(match[1]) : null;
+}
+
 export interface MatchResult {
   met: number;
   total: number;
@@ -42,6 +49,19 @@ export function computeMatch(listing: Listing, prefs: Preferences): MatchResult 
       met: listing.rooms != null && listing.rooms >= prefs.minRooms,
     });
   }
+  if (prefs.minFloor != null) {
+    const floorNum = parseFloorNumber(listing.floor);
+    criteria.push({
+      label: `${prefs.minFloor}층 이상`,
+      met: floorNum != null && floorNum >= prefs.minFloor,
+    });
+  }
+  if (prefs.desiredDirection) {
+    criteria.push({
+      label: prefs.desiredDirection,
+      met: !!listing.floor?.includes(prefs.desiredDirection),
+    });
+  }
   const station = prefs.desiredStation?.trim();
   if (station) {
     criteria.push({
@@ -75,6 +95,8 @@ export function hasPreferences(prefs: Preferences): boolean {
     prefs.maxMonthlyRent != null ||
     prefs.minAreaSqm != null ||
     prefs.minRooms != null ||
+    prefs.minFloor != null ||
+    !!prefs.desiredDirection ||
     !!prefs.desiredStation?.trim() ||
     prefs.requiredOptions.length > 0 ||
     !!prefs.requireParking

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { PageShell } from "../components/PageShell";
 import { useToast } from "../components/ToastProvider";
 import { usePreferencesStore } from "../store/usePreferencesStore";
-import { OPTION_ITEMS } from "../constants/platforms";
+import { OPTION_ITEMS, DIRECTION_PRESETS } from "../constants/platforms";
 
 export function PreferencesForm() {
   const navigate = useNavigate();
@@ -15,6 +15,8 @@ export function PreferencesForm() {
   const [maxMonthlyRent, setMaxMonthlyRent] = useState("");
   const [minAreaSqm, setMinAreaSqm] = useState("");
   const [minRooms, setMinRooms] = useState("");
+  const [minFloor, setMinFloor] = useState("");
+  const [desiredDirection, setDesiredDirection] = useState("");
   const [desiredStation, setDesiredStation] = useState("");
   const [requiredOptions, setRequiredOptions] = useState<string[]>([]);
   const [requireParking, setRequireParking] = useState(false);
@@ -27,6 +29,8 @@ export function PreferencesForm() {
     setMaxMonthlyRent(preferences.maxMonthlyRent != null ? String(preferences.maxMonthlyRent) : "");
     setMinAreaSqm(preferences.minAreaSqm != null ? String(preferences.minAreaSqm) : "");
     setMinRooms(preferences.minRooms != null ? String(preferences.minRooms) : "");
+    setMinFloor(preferences.minFloor != null ? String(preferences.minFloor) : "");
+    setDesiredDirection(preferences.desiredDirection ?? "");
     setDesiredStation(preferences.desiredStation ?? "");
     setRequiredOptions(preferences.requiredOptions ?? []);
     setRequireParking(preferences.requireParking ?? false);
@@ -44,6 +48,8 @@ export function PreferencesForm() {
     setMaxMonthlyRent("");
     setMinAreaSqm("");
     setMinRooms("");
+    setMinFloor("");
+    setDesiredDirection("");
     setDesiredStation("");
     setRequiredOptions([]);
     setRequireParking(false);
@@ -58,6 +64,8 @@ export function PreferencesForm() {
         maxMonthlyRent: maxMonthlyRent ? Number(maxMonthlyRent) : undefined,
         minAreaSqm: minAreaSqm ? Number(minAreaSqm) : undefined,
         minRooms: minRooms ? Number(minRooms) : undefined,
+        minFloor: minFloor ? Number(minFloor) : undefined,
+        desiredDirection: desiredDirection || undefined,
         desiredStation: desiredStation.trim() || undefined,
         requiredOptions,
         requireParking: requireParking || undefined,
@@ -108,7 +116,33 @@ export function PreferencesForm() {
             <Section label="방 개수 최소">
               <TextInput value={minRooms} onChange={setMinRooms} placeholder="예: 1" type="number" />
             </Section>
+            <Section label="층수 최소">
+              <TextInput value={minFloor} onChange={setMinFloor} placeholder="예: 2" type="number" />
+            </Section>
           </div>
+
+          <Section label="원하는 방향">
+            <div className="flex flex-wrap gap-1.5">
+              {DIRECTION_PRESETS.map((d) => {
+                const active = desiredDirection === d;
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setDesiredDirection(active ? "" : d)}
+                    className="rounded-lg px-2.5 py-1.5 text-[12px] font-bold"
+                    style={{
+                      background: active ? "#E8EEFD" : "#fff",
+                      color: active ? "#1D3FAF" : "#5B6B8C",
+                      border: `1px solid ${active ? "#2B5BE2" : "rgba(13,27,52,.1)"}`,
+                    }}
+                  >
+                    {d}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
 
           <Section label="원하는 지역 / 지하철역">
             <TextInput

@@ -40,3 +40,30 @@ export async function extractListingFromPhoto(file: File): Promise<ExtractedList
   });
   return res.data.extracted as ExtractedListing;
 }
+
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (
+    err &&
+    typeof err === "object" &&
+    "response" in err &&
+    err.response &&
+    typeof err.response === "object" &&
+    "data" in err.response &&
+    err.response.data &&
+    typeof err.response.data === "object" &&
+    "error" in err.response.data &&
+    typeof err.response.data.error === "string"
+  ) {
+    return err.response.data.error;
+  }
+  return fallback;
+}
+
+export async function extractListingFromUrl(url: string): Promise<ExtractedListing> {
+  try {
+    const res = await api.post("/listings/extract-url", { url });
+    return res.data.extracted as ExtractedListing;
+  } catch (err) {
+    throw new Error(extractErrorMessage(err, "매물 정보를 읽는 데 실패했어요."));
+  }
+}

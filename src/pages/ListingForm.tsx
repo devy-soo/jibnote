@@ -6,7 +6,8 @@ import { useListingStore } from "../store/useListingStore";
 import { useToast } from "../components/ToastProvider";
 import { useObjectUrls } from "../lib/useObjectUrls";
 import { resolveUploadUrl } from "../api/client";
-import { extractListingFromPhoto } from "../api/extract";
+import { extractListingFromPhoto, extractListingFromUrl } from "../api/extract";
+import type { ExtractedListing } from "../api/extract";
 import { fetchPhotoFromUrl } from "../api/photoUrl";
 import { STATUS_OPTIONS } from "../constants/statuses";
 import { DEAL_TYPES, RENT_TYPES, depositLabel } from "../constants/dealTypes";
@@ -88,6 +89,8 @@ export function ListingForm() {
   const [captureFile, setCaptureFile] = useState<File | null>(null);
   const [capturePreviewOpen, setCapturePreviewOpen] = useState(false);
   const [extracting, setExtracting] = useState(false);
+  const [listingUrlInput, setListingUrlInput] = useState("");
+  const [extractingUrl, setExtractingUrl] = useState(false);
   const [step, setStep] = useState<"capture" | "form">(isEdit ? "form" : "capture");
 
   useEffect(() => {
@@ -219,42 +222,47 @@ export function ListingForm() {
     setOptions((prev) => (prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item]));
   }
 
+  function applyExtracted(ex: ExtractedListing): number {
+    let filled = 0;
+    const apply = (has: boolean, set: () => void) => {
+      if (has) {
+        set();
+        filled++;
+      }
+    };
+    apply(!!ex.title, () => setTitle(ex.title!));
+    apply(!!ex.listingNumber, () => setListingNumber(ex.listingNumber!));
+    apply(!!ex.platform, () => setPlatform(ex.platform!));
+    apply(!!ex.sourceUrl, () => setSourceUrl(ex.sourceUrl!));
+    apply(!!ex.buildingType, () => setBuildingType(ex.buildingType!));
+    apply(!!ex.dealType, () => setDealType(ex.dealType!));
+    apply(ex.deposit != null, () => setDeposit(String(ex.deposit)));
+    apply(ex.monthlyRent != null, () => setMonthlyRent(String(ex.monthlyRent)));
+    apply(ex.areaSqm != null, () => setAreaSqm(String(ex.areaSqm)));
+    apply(ex.rooms != null, () => setRooms(String(ex.rooms)));
+    apply(ex.floorNumber != null, () => setFloorNumber(String(ex.floorNumber)));
+    apply(!!ex.direction, () => setDirection(ex.direction!));
+    apply(ex.totalFloors != null, () => setTotalFloors(String(ex.totalFloors)));
+    apply(!!ex.approvalDate, () => setApprovalDate(ex.approvalDate!));
+    apply(ex.isViolationBuilding != null, () => setIsViolationBuilding(ex.isViolationBuilding));
+    apply(ex.parkingAvailable != null, () => setParkingAvailable(ex.parkingAvailable));
+    apply(!!ex.options?.length, () => setOptions(ex.options!));
+    apply(ex.maintenanceFee != null, () => setMaintenanceFee(String(ex.maintenanceFee)));
+    apply(ex.walkMinutes != null, () => setWalkMinutes(String(ex.walkMinutes)));
+    apply(!!ex.nearestStation, () => setNearestStation(ex.nearestStation!));
+    apply(!!ex.address, () => setAddress(ex.address!));
+    apply(!!ex.agents?.length, () =>
+      setAgents(ex.agents!.map((a) => ({ name: a.name ?? "", phone: a.phone ?? "" }))),
+    );
+    return filled;
+  }
+
   async function handleExtract() {
     if (!captureFile) return;
     setExtracting(true);
     try {
       const ex = await extractListingFromPhoto(captureFile);
-      let filled = 0;
-      const apply = (has: boolean, set: () => void) => {
-        if (has) {
-          set();
-          filled++;
-        }
-      };
-      apply(!!ex.title, () => setTitle(ex.title!));
-      apply(!!ex.listingNumber, () => setListingNumber(ex.listingNumber!));
-      apply(!!ex.platform, () => setPlatform(ex.platform!));
-      apply(!!ex.sourceUrl, () => setSourceUrl(ex.sourceUrl!));
-      apply(!!ex.buildingType, () => setBuildingType(ex.buildingType!));
-      apply(!!ex.dealType, () => setDealType(ex.dealType!));
-      apply(ex.deposit != null, () => setDeposit(String(ex.deposit)));
-      apply(ex.monthlyRent != null, () => setMonthlyRent(String(ex.monthlyRent)));
-      apply(ex.areaSqm != null, () => setAreaSqm(String(ex.areaSqm)));
-      apply(ex.rooms != null, () => setRooms(String(ex.rooms)));
-      apply(ex.floorNumber != null, () => setFloorNumber(String(ex.floorNumber)));
-      apply(!!ex.direction, () => setDirection(ex.direction!));
-      apply(ex.totalFloors != null, () => setTotalFloors(String(ex.totalFloors)));
-      apply(!!ex.approvalDate, () => setApprovalDate(ex.approvalDate!));
-      apply(ex.isViolationBuilding != null, () => setIsViolationBuilding(ex.isViolationBuilding));
-      apply(ex.parkingAvailable != null, () => setParkingAvailable(ex.parkingAvailable));
-      apply(!!ex.options?.length, () => setOptions(ex.options!));
-      apply(ex.maintenanceFee != null, () => setMaintenanceFee(String(ex.maintenanceFee)));
-      apply(ex.walkMinutes != null, () => setWalkMinutes(String(ex.walkMinutes)));
-      apply(!!ex.nearestStation, () => setNearestStation(ex.nearestStation!));
-      apply(!!ex.address, () => setAddress(ex.address!));
-      apply(!!ex.agents?.length, () =>
-        setAgents(ex.agents!.map((a) => ({ name: a.name ?? "", phone: a.phone ?? "" }))),
-      );
+      const filled = applyExtracted(ex);
 
       let addedPhoto = false;
       const box = ex.photoBox;
@@ -286,6 +294,26 @@ export function ListingForm() {
       showToast("이미지 분석에 실패했어요. 직접 입력해 주세요");
     } finally {
       setExtracting(false);
+    }
+  }
+
+  async function handleExtractFromUrl() {
+    const url = listingUrlInput.trim();
+    if (!url) return;
+    setExtractingUrl(true);
+    try {
+      const ex = await extractListingFromUrl(url);
+      const filled = applyExtracted(ex);
+      showToast(
+        filled > 0
+          ? `${filled}개 항목을 채웠어요. 확인 후 저장해 주세요`
+          : "링크에서 읽을 수 있는 정보가 없었어요",
+      );
+      setStep("form");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "매물 정보를 읽는 데 실패했어요");
+    } finally {
+      setExtractingUrl(false);
     }
   }
 
@@ -458,6 +486,35 @@ export function ListingForm() {
                   />
                 </label>
               )}
+            </div>
+
+            <div className="flex w-full max-w-sm items-center gap-2.5 text-[11.5px] font-bold text-ink-light">
+              <div className="h-px flex-1 bg-line" />
+              또는
+              <div className="h-px flex-1 bg-line" />
+            </div>
+
+            <div className="flex w-full max-w-sm gap-2">
+              <input
+                value={listingUrlInput}
+                onChange={(e) => setListingUrlInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleExtractFromUrl();
+                  }
+                }}
+                placeholder="매물 링크 붙여넣기"
+                className="w-full min-w-0 flex-1 rounded-2xl border border-line bg-white px-3.5 py-3 text-[13px] font-medium text-ink outline-none focus:border-primary"
+              />
+              <button
+                type="button"
+                onClick={handleExtractFromUrl}
+                disabled={extractingUrl || !listingUrlInput.trim()}
+                className="flex-none rounded-xl bg-primary px-4 py-3 text-[13px] font-bold text-white disabled:opacity-60"
+              >
+                {extractingUrl ? "불러오는 중..." : "채우기"}
+              </button>
             </div>
 
             <button

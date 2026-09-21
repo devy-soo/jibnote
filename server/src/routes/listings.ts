@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "../db";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
 import { uploadImage, deleteImage } from "../cloudinary";
-import { extractListingFromImage } from "../gemini";
+import { extractListingFromImage, extractListingFromText } from "../gemini";
 import type { Listing, Photo } from "@prisma/client";
 
 const router = Router();
@@ -14,14 +14,47 @@ const router = Router();
 const PRIVATE_HOST_PATTERN =
   /^(localhost|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|0\.0\.0\.0|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|169\.254\.\d{1,3}\.\d{1,3}|.*\.railway\.internal)$/i;
 const MAX_PHOTO_URL_BYTES = 15 * 1024 * 1024;
+const MAX_PAGE_TEXT_CHARS = 8000;
 
-const photoUrlLimiter = rateLimit({
+const externalFetchLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "요청이 너무 많아요. 잠시 후 다시 시도해주세요." },
 });
+
+function isPrivateUrl(url: URL): boolean {
+  return (
+    (url.protocol !== "http:" && url.protocol !== "https:") ||
+    PRIVATE_HOST_PATTERN.test(url.hostname)
+  );
+}
+
+function htmlToPageText(html: string): string {
+  const meta = (prop: string) => {
+    const match = html.match(
+      new RegExp(`<meta[^>]+property=["']${prop}["'][^>]+content=["']([^"']*)["']`, "i"),
+    );
+    return match ? match[1] : "";
+  };
+  const ogLines = [
+    meta("og:title") && `[og:title] ${meta("og:title")}`,
+    meta("og:description") && `[og:description] ${meta("og:description")}`,
+  ].filter(Boolean);
+
+  const bodyText = html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return [...ogLines, bodyText].join("\n").slice(0, MAX_PAGE_TEXT_CHARS);
+}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -130,7 +163,7 @@ router.post("/extract", upload.single("photo"), async (req: AuthedRequest, res) 
 
 const photoUrlSchema = z.object({ url: z.string().url() });
 
-router.post("/photo-from-url", photoUrlLimiter, async (req: AuthedRequest, res) => {
+router.post("/photo-from-url", externalFetchLimiter, async (req: AuthedRequest, res) => {
   const parsed = photoUrlSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "올바른 이미지 링크를 입력해주세요." });
@@ -142,10 +175,7 @@ router.post("/photo-from-url", photoUrlLimiter, async (req: AuthedRequest, res) 
   } catch {
     return res.status(400).json({ error: "올바른 이미지 링크를 입력해주세요." });
   }
-  if (target.protocol !== "http:" && target.protocol !== "https:") {
-    return res.status(400).json({ error: "http/https 링크만 지원해요." });
-  }
-  if (PRIVATE_HOST_PATTERN.test(target.hostname)) {
+  if (isPrivateUrl(target)) {
     return res.status(400).json({ error: "이 링크는 불러올 수 없어요." });
   }
 
@@ -171,6 +201,61 @@ router.post("/photo-from-url", photoUrlLimiter, async (req: AuthedRequest, res) 
 
   res.setHeader("Content-Type", contentType);
   res.send(buffer);
+});
+
+const extractUrlSchema = z.object({ url: z.string().url() });
+
+router.post("/extract-url", externalFetchLimiter, async (req: AuthedRequest, res) => {
+  const parsed = extractUrlSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "올바른 매물 링크를 입력해주세요." });
+  }
+
+  let target: URL;
+  try {
+    target = new URL(parsed.data.url);
+  } catch {
+    return res.status(400).json({ error: "올바른 매물 링크를 입력해주세요." });
+  }
+  if (isPrivateUrl(target)) {
+    return res.status(400).json({ error: "이 링크는 불러올 수 없어요." });
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(target, {
+      redirect: "follow",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36",
+      },
+    });
+  } catch {
+    return res.status(502).json({ error: "페이지를 불러오지 못했어요." });
+  }
+  if (!response.ok) {
+    return res.status(502).json({ error: "페이지를 불러오지 못했어요." });
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("html")) {
+    return res.status(400).json({ error: "매물 상세 페이지 링크가 아니에요." });
+  }
+
+  const html = await response.text();
+  const pageText = htmlToPageText(html);
+  if (!pageText.trim()) {
+    return res.status(400).json({ error: "페이지에서 읽을 수 있는 내용이 없어요." });
+  }
+
+  try {
+    const extracted = await extractListingFromText(pageText);
+    extracted.sourceUrl = parsed.data.url;
+    res.json({ extracted });
+  } catch (err) {
+    console.error("Gemini URL extract failed:", err);
+    res.status(502).json({ error: "매물 정보를 읽는 데 실패했어요. 직접 입력해 주세요." });
+  }
 });
 
 const agentSchema = z.object({

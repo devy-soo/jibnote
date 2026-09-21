@@ -7,6 +7,7 @@ import { useToast } from "../components/ToastProvider";
 import { useObjectUrls } from "../lib/useObjectUrls";
 import { resolveUploadUrl } from "../api/client";
 import { extractListingFromPhoto } from "../api/extract";
+import { fetchPhotoFromUrl } from "../api/photoUrl";
 import { STATUS_OPTIONS } from "../constants/statuses";
 import { DEAL_TYPES, RENT_TYPES, depositLabel } from "../constants/dealTypes";
 import {
@@ -78,6 +79,8 @@ export function ListingForm() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [photoUrlInput, setPhotoUrlInput] = useState("");
+  const [addingPhotoFromUrl, setAddingPhotoFromUrl] = useState(false);
   const [hydrated, setHydrated] = useState(!isEdit);
   const [submitting, setSubmitting] = useState(false);
   const [cropKey, setCropKey] = useState<string | null>(null);
@@ -148,6 +151,21 @@ export function ListingForm() {
       .slice(0, room)
       .map((file) => ({ key: createKey(), kind: "new" as const, file }));
     setPhotos((prev) => [...prev, ...next]);
+  }
+
+  async function handleAddPhotoUrl() {
+    const url = photoUrlInput.trim();
+    if (!url || photos.length >= MAX_PHOTOS) return;
+    setAddingPhotoFromUrl(true);
+    try {
+      const file = await fetchPhotoFromUrl(url);
+      setPhotos((prev) => [...prev, { key: createKey(), kind: "new" as const, file }]);
+      setPhotoUrlInput("");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "이미지를 불러오지 못했어요");
+    } finally {
+      setAddingPhotoFromUrl(false);
+    }
   }
 
   function removePhoto(key: string) {
@@ -570,6 +588,30 @@ export function ListingForm() {
               직접 찍은 사진을 올려두면 나중에 비교하기 편해요 (최대 {MAX_PHOTOS}장).
               별 아이콘으로 대표사진을, 자르기 아이콘으로 원하는 부분만 남길 수 있어요.
             </p>
+            {photos.length < MAX_PHOTOS && (
+              <div className="mt-2.5 flex gap-2">
+                <input
+                  value={photoUrlInput}
+                  onChange={(e) => setPhotoUrlInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddPhotoUrl();
+                    }
+                  }}
+                  placeholder="이미지 URL 붙여넣기"
+                  className="w-full min-w-0 flex-1 rounded-2xl border border-line bg-white px-3.5 py-3 text-[13px] font-medium text-ink outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddPhotoUrl}
+                  disabled={addingPhotoFromUrl || !photoUrlInput.trim()}
+                  className="flex-none rounded-2xl bg-chip px-4 py-3 text-[12.5px] font-bold text-ink-soft disabled:opacity-50"
+                >
+                  {addingPhotoFromUrl ? "불러오는 중..." : "추가"}
+                </button>
+              </div>
+            )}
           </Section>
 
           <Section label="매물 이름">

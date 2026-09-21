@@ -1,5 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
+import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { prisma } from "../db";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
@@ -8,6 +9,19 @@ import { extractListingFromImage } from "../gemini";
 import type { Listing, Photo } from "@prisma/client";
 
 const router = Router();
+
+// 서버가 사용자 대신 외부 URL을 요청하는 기능이라 내부망 주소로 향하는 요청을 막고, 남용을 제한.
+const PRIVATE_HOST_PATTERN =
+  /^(localhost|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|0\.0\.0\.0|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|169\.254\.\d{1,3}\.\d{1,3}|.*\.railway\.internal)$/i;
+const MAX_PHOTO_URL_BYTES = 15 * 1024 * 1024;
+
+const photoUrlLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "요청이 너무 많아요. 잠시 후 다시 시도해주세요." },
+});
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -112,6 +126,51 @@ router.post("/extract", upload.single("photo"), async (req: AuthedRequest, res) 
     console.error("Gemini extract failed:", err);
     res.status(502).json({ error: "이미지 분석에 실패했어요. 직접 입력해 주세요." });
   }
+});
+
+const photoUrlSchema = z.object({ url: z.string().url() });
+
+router.post("/photo-from-url", photoUrlLimiter, async (req: AuthedRequest, res) => {
+  const parsed = photoUrlSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "올바른 이미지 링크를 입력해주세요." });
+  }
+
+  let target: URL;
+  try {
+    target = new URL(parsed.data.url);
+  } catch {
+    return res.status(400).json({ error: "올바른 이미지 링크를 입력해주세요." });
+  }
+  if (target.protocol !== "http:" && target.protocol !== "https:") {
+    return res.status(400).json({ error: "http/https 링크만 지원해요." });
+  }
+  if (PRIVATE_HOST_PATTERN.test(target.hostname)) {
+    return res.status(400).json({ error: "이 링크는 불러올 수 없어요." });
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(target, { redirect: "follow" });
+  } catch {
+    return res.status(502).json({ error: "이미지를 불러오지 못했어요." });
+  }
+  if (!response.ok) {
+    return res.status(502).json({ error: "이미지를 불러오지 못했어요." });
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.startsWith("image/")) {
+    return res.status(400).json({ error: "이미지 링크가 아니에요." });
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  if (buffer.length > MAX_PHOTO_URL_BYTES) {
+    return res.status(400).json({ error: "이미지 용량이 너무 커요 (최대 15MB)." });
+  }
+
+  res.setHeader("Content-Type", contentType);
+  res.send(buffer);
 });
 
 const agentSchema = z.object({

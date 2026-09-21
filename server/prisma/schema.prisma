@@ -30,7 +30,8 @@ model Listing {
   monthlyRent            Int?
   areaSqm                Float?
   rooms                  Int?
-  floor                  String?
+  floorNumber            Int?
+  direction              String?
   totalFloors            Int?
   approvalDate           String?
   isViolationBuilding    Boolean?

@@ -16,7 +16,8 @@ export interface ExtractedListing {
   monthlyRent?: number;
   areaSqm?: number;
   rooms?: number;
-  floor?: string;
+  floorNumber?: number;
+  direction?: string;
   totalFloors?: number;
   approvalDate?: string;
   isViolationBuilding?: boolean;
@@ -44,7 +45,11 @@ const RESPONSE_SCHEMA = {
     monthlyRent: { type: "number" },
     areaSqm: { type: "number" },
     rooms: { type: "number" },
-    floor: { type: "string" },
+    floorNumber: { type: "number" },
+    direction: {
+      type: "string",
+      enum: ["남향", "남동향", "남서향", "동향", "서향", "북향", "북동향", "북서향"],
+    },
     totalFloors: { type: "number" },
     approvalDate: { type: "string" },
     isViolationBuilding: { type: "boolean" },
@@ -88,7 +93,8 @@ const PROMPT = `이 이미지는 한국 부동산 매물(전세/월세/반전세
 - monthlyRent: 월세, 만원 단위 숫자 (월세·반전세일 때만)
 - areaSqm: 전용면적, 제곱미터(㎡) 단위 숫자만 (평수만 있으면 3.3058을 곱해서 ㎡로 환산)
 - rooms: 방 개수, 숫자만
-- floor: 층/방향 (예: "3층 / 남향")
+- floorNumber: 이 매물이 있는 층수, 숫자만 (반지하/지하는 음수나 0, 예: 반지하는 0)
+- direction: 방향 (남향/남동향/남서향/동향/서향/북향/북동향/북서향 중 하나, 명시돼 있을 때만)
 - totalFloors: 건물 총 층수, 숫자만
 - approvalDate: 사용승인일 (예: "2010-05" 형식, 연월만 있으면 연월까지만)
 - isViolationBuilding: 위반건축물 여부 (true/false, 명시돼 있을 때만)

@@ -17,7 +17,8 @@ export interface ExtractedListing {
   monthlyRent?: number;
   areaSqm?: number;
   rooms?: number;
-  floor?: string;
+  floorNumber?: number;
+  direction?: string;
   totalFloors?: number;
   approvalDate?: string;
   isViolationBuilding?: boolean;

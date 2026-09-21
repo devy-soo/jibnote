@@ -5,13 +5,6 @@ export interface MatchCriterion {
   met: boolean;
 }
 
-/** listing.floor는 "3층 / 남향" 같은 자유 텍스트라, 층수만 정규식으로 뽑아낸다. */
-function parseFloorNumber(floor?: string): number | null {
-  if (!floor) return null;
-  const match = floor.match(/(-?\d+)\s*층/);
-  return match ? Number(match[1]) : null;
-}
-
 export interface MatchResult {
   met: number;
   total: number;
@@ -50,16 +43,15 @@ export function computeMatch(listing: Listing, prefs: Preferences): MatchResult 
     });
   }
   if (prefs.minFloor != null) {
-    const floorNum = parseFloorNumber(listing.floor);
     criteria.push({
       label: `${prefs.minFloor}층 이상`,
-      met: floorNum != null && floorNum >= prefs.minFloor,
+      met: listing.floorNumber != null && listing.floorNumber >= prefs.minFloor,
     });
   }
   if (prefs.desiredDirection) {
     criteria.push({
       label: prefs.desiredDirection,
-      met: !!listing.floor?.includes(prefs.desiredDirection),
+      met: listing.direction === prefs.desiredDirection,
     });
   }
   const station = prefs.desiredStation?.trim();

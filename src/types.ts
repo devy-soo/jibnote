@@ -23,9 +23,9 @@ export interface Preferences {
   minAreaSqm?: number;
   /** 방 개수 하한 */
   minRooms?: number;
-  /** 층수 하한 (listing.floor 텍스트에서 숫자를 추출해 비교) */
+  /** 층수 하한 */
   minFloor?: number;
-  /** 원하는 방향 (예: "남향", listing.floor 텍스트에 포함돼 있는지로 비교) */
+  /** 원하는 방향 (예: "남향") */
   desiredDirection?: string;
   /** 원하는 지역/역 (자유 텍스트, 부분 일치) */
   desiredStation?: string;
@@ -69,8 +69,10 @@ export interface Listing {
   areaSqm?: number;
   /** 방 개수 */
   rooms?: number;
-  /** 예: "3층 / 남향" */
-  floor?: string;
+  /** 이 매물이 있는 층수 (반지하는 0, 지하는 음수로 표현) */
+  floorNumber?: number;
+  /** 방향 (예: "남향") */
+  direction?: string;
   /** 건물 총 층수 */
   totalFloors?: number;
   /** 사용승인일 (예: "2010-05") */

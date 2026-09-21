@@ -14,7 +14,7 @@ import { CHECKLIST_GROUPS } from "../constants/checklist";
 import { RATING_FIELDS } from "../constants/ratings";
 import { checklistTotals, overallScore } from "../lib/score";
 import { computeMatch } from "../lib/matchScore";
-import { formatArea, formatDealPrice, formatManwon, formatSavedDate } from "../lib/format";
+import { formatArea, formatDealPrice, formatFloor, formatManwon, formatSavedDate } from "../lib/format";
 import type { RatingKey } from "../types";
 
 const SWIPE_THRESHOLD = 40;
@@ -280,7 +280,7 @@ export function ListingDetail() {
               <div className="grid grid-cols-2 gap-2.5">
                 <InfoTile label="전용 면적" value={formatArea(listing.areaSqm) || "미입력"} />
                 <InfoTile label="방 개수" value={listing.rooms != null ? `방 ${listing.rooms}개` : "미입력"} />
-                <InfoTile label="층 / 방향" value={listing.floor || "미입력"} />
+                <InfoTile label="층 / 방향" value={formatFloor(listing) || "미입력"} />
                 <InfoTile
                   label="지하철역"
                   value={

@@ -44,8 +44,16 @@ export function formatArea(sqm: number | undefined): string {
   return `${sqm}㎡ (${sqmToPyeong(sqm)}평)`;
 }
 
+/** "3층 / 남향", "3층", "남향" 등 있는 값만 조합해서 반환. 둘 다 없으면 빈 문자열. */
+export function formatFloor(listing: Pick<Listing, "floorNumber" | "direction">): string {
+  const parts = [];
+  if (listing.floorNumber != null) parts.push(`${listing.floorNumber}층`);
+  if (listing.direction) parts.push(listing.direction);
+  return parts.join(" / ");
+}
+
 export function formatMeta(listing: Listing): string {
-  const parts = [formatArea(listing.areaSqm), listing.floor];
+  const parts = [formatArea(listing.areaSqm), formatFloor(listing)];
   if (listing.rooms != null) parts.push(`방 ${listing.rooms}개`);
   if (listing.walkMinutes != null) parts.push(`역 도보 ${listing.walkMinutes}분`);
   return parts.filter(Boolean).join(" · ");

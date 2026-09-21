@@ -14,6 +14,7 @@ import {
   MAINTENANCE_FEE_ITEMS,
   BUILDING_TYPE_PRESETS,
   OPTION_ITEMS,
+  DIRECTION_PRESETS,
 } from "../constants/platforms";
 import { sqmToPyeong } from "../lib/format";
 import { cropImageByBox } from "../lib/cropImage";
@@ -58,7 +59,8 @@ export function ListingForm() {
   const [monthlyRent, setMonthlyRent] = useState("");
   const [areaSqm, setAreaSqm] = useState("");
   const [rooms, setRooms] = useState("");
-  const [floor, setFloor] = useState("");
+  const [floorNumber, setFloorNumber] = useState("");
+  const [direction, setDirection] = useState("");
   const [totalFloors, setTotalFloors] = useState("");
   const [approvalDate, setApprovalDate] = useState("");
   const [isViolationBuilding, setIsViolationBuilding] = useState<boolean | undefined>(undefined);
@@ -97,7 +99,8 @@ export function ListingForm() {
       setMonthlyRent(existing.monthlyRent ? String(existing.monthlyRent) : "");
       setAreaSqm(existing.areaSqm != null ? String(existing.areaSqm) : "");
       setRooms(existing.rooms != null ? String(existing.rooms) : "");
-      setFloor(existing.floor ?? "");
+      setFloorNumber(existing.floorNumber != null ? String(existing.floorNumber) : "");
+      setDirection(existing.direction ?? "");
       setTotalFloors(existing.totalFloors != null ? String(existing.totalFloors) : "");
       setApprovalDate(existing.approvalDate ?? "");
       setIsViolationBuilding(existing.isViolationBuilding ?? undefined);
@@ -220,7 +223,8 @@ export function ListingForm() {
       apply(ex.monthlyRent != null, () => setMonthlyRent(String(ex.monthlyRent)));
       apply(ex.areaSqm != null, () => setAreaSqm(String(ex.areaSqm)));
       apply(ex.rooms != null, () => setRooms(String(ex.rooms)));
-      apply(!!ex.floor, () => setFloor(ex.floor!));
+      apply(ex.floorNumber != null, () => setFloorNumber(String(ex.floorNumber)));
+      apply(!!ex.direction, () => setDirection(ex.direction!));
       apply(ex.totalFloors != null, () => setTotalFloors(String(ex.totalFloors)));
       apply(!!ex.approvalDate, () => setApprovalDate(ex.approvalDate!));
       apply(ex.isViolationBuilding != null, () => setIsViolationBuilding(ex.isViolationBuilding));
@@ -300,7 +304,8 @@ export function ListingForm() {
       monthlyRent: RENT_TYPES.includes(dealType) ? Number(monthlyRent) || 0 : undefined,
       areaSqm: areaSqm ? Number(areaSqm) : undefined,
       rooms: rooms ? Number(rooms) : undefined,
-      floor: floor.trim() || undefined,
+      floorNumber: floorNumber ? Number(floorNumber) : undefined,
+      direction: direction || undefined,
       totalFloors: totalFloors ? Number(totalFloors) : undefined,
       approvalDate: approvalDate.trim() || undefined,
       isViolationBuilding,
@@ -662,8 +667,8 @@ export function ListingForm() {
             <Section label="방 개수">
               <TextInput value={rooms} onChange={setRooms} placeholder="예: 2" type="number" />
             </Section>
-            <Section label="층 / 방향">
-              <TextInput value={floor} onChange={setFloor} placeholder="예: 3층 / 남향" />
+            <Section label="층수">
+              <TextInput value={floorNumber} onChange={setFloorNumber} placeholder="예: 3 (반지하는 0)" type="number" />
             </Section>
             <Section label="관리비 (만원)">
               <TextInput value={maintenanceFee} onChange={setMaintenanceFee} placeholder="예: 8" type="number" />
@@ -675,6 +680,29 @@ export function ListingForm() {
               <TextInput value={approvalDate} onChange={setApprovalDate} placeholder="예: 2010-05" />
             </Section>
           </div>
+
+          <Section label="방향">
+            <div className="flex flex-wrap gap-1.5">
+              {DIRECTION_PRESETS.map((d) => {
+                const active = direction === d;
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setDirection(active ? "" : d)}
+                    className="rounded-lg px-2.5 py-1.5 text-[12px] font-bold"
+                    style={{
+                      background: active ? "#E8EEFD" : "#fff",
+                      color: active ? "#1D3FAF" : "#5B6B8C",
+                      border: `1px solid ${active ? "#2B5BE2" : "rgba(13,27,52,.1)"}`,
+                    }}
+                  >
+                    {d}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
 
           <div className="grid grid-cols-2 gap-3">
             <Section label="위반건축물 여부">

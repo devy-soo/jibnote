@@ -14,7 +14,8 @@ export interface ListingPayload {
   monthlyRent?: number;
   areaSqm?: number;
   rooms?: number;
-  floor?: string;
+  floorNumber?: number;
+  direction?: string;
   totalFloors?: number;
   approvalDate?: string;
   isViolationBuilding?: boolean;
@@ -75,7 +76,8 @@ function buildFormData(payload: ListingPayload): FormData {
   }
   if (payload.areaSqm != null) fd.append("areaSqm", String(payload.areaSqm));
   if (payload.rooms != null) fd.append("rooms", String(payload.rooms));
-  if (payload.floor) fd.append("floor", payload.floor);
+  if (payload.floorNumber != null) fd.append("floorNumber", String(payload.floorNumber));
+  if (payload.direction) fd.append("direction", payload.direction);
   if (payload.totalFloors != null) fd.append("totalFloors", String(payload.totalFloors));
   if (payload.approvalDate) fd.append("approvalDate", payload.approvalDate);
   if (payload.isViolationBuilding != null) {

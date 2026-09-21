@@ -6,12 +6,14 @@ import { StatusBadge } from "../components/StatusBadge";
 import { StarRating } from "../components/StarRating";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { useListingStore } from "../store/useListingStore";
+import { usePreferencesStore } from "../store/usePreferencesStore";
 import { useToast } from "../components/ToastProvider";
 import { resolveUploadUrl } from "../api/client";
 import { RENT_TYPES } from "../constants/dealTypes";
 import { CHECKLIST_GROUPS } from "../constants/checklist";
 import { RATING_FIELDS } from "../constants/ratings";
 import { checklistTotals, overallScore } from "../lib/score";
+import { computeMatch } from "../lib/matchScore";
 import { formatArea, formatDealPrice, formatManwon, formatSavedDate } from "../lib/format";
 import type { RatingKey } from "../types";
 
@@ -28,6 +30,7 @@ export function ListingDetail() {
   const patchListing = useListingStore((s) => s.patchListing);
   const removeListing = useListingStore((s) => s.removeListing);
   const toggleSaved = useListingStore((s) => s.toggleSaved);
+  const preferences = usePreferencesStore((s) => s.preferences);
 
   const [tab, setTab] = useState<Tab>("info");
   const [memoDraft, setMemoDraft] = useState<string | null>(null);
@@ -48,6 +51,7 @@ export function ListingDetail() {
 
   const { total, done } = checklistTotals(listing.checklist);
   const score = overallScore(listing.ratings);
+  const match = computeMatch(listing, preferences);
   const memo = memoDraft ?? listing.memo ?? "";
   const visitNote = visitNoteDraft ?? listing.visitNote ?? "";
 
@@ -212,6 +216,41 @@ export function ListingDetail() {
 
           {tab === "info" ? (
             <div className="animate-fade-in flex flex-col gap-4">
+              {match && (
+                <div className="rounded-3xl border border-[#F2CB8E] bg-[#FFF8EC] p-[18px]">
+                  <div className="mb-2.5 flex items-baseline justify-between">
+                    <h3 className="text-[15.5px] font-bold text-ink">내 조건 매칭도</h3>
+                    <span className="text-[19px] font-bold text-[#B9770E]">{match.percent}%</span>
+                  </div>
+                  <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-white">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${match.percent}%`, background: "linear-gradient(90deg,#FFD08A,#E8912A)" }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {match.criteria.map((c, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span
+                          className="grid h-[18px] w-[18px] flex-none place-items-center rounded-full text-[10px] font-bold text-white"
+                          style={{ background: c.met ? "#0B7355" : "#C7D0E0" }}
+                        >
+                          {c.met ? "✓" : "✕"}
+                        </span>
+                        <span className="text-[12.5px] font-medium text-ink-soft">{c.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/preferences")}
+                    className="mt-3 text-[11.5px] font-bold text-[#B9770E] underline underline-offset-2"
+                  >
+                    내 조건 수정하기
+                  </button>
+                </div>
+              )}
+
               <div className="rounded-3xl border border-line bg-white p-[18px]">
                 <div className="mb-1 flex items-baseline justify-between">
                   <h3 className="text-[15.5px] font-bold text-ink">관리비</h3>

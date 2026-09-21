@@ -14,6 +14,23 @@ export interface RatingState {
 
 export type RatingKey = keyof RatingState;
 
+export interface Preferences {
+  /** 보증금 상한, 만원 */
+  maxDeposit?: number;
+  /** 월세 상한, 만원 */
+  maxMonthlyRent?: number;
+  /** 전용면적 하한, ㎡ */
+  minAreaSqm?: number;
+  /** 방 개수 하한 */
+  minRooms?: number;
+  /** 원하는 지역/역 (자유 텍스트, 부분 일치) */
+  desiredStation?: string;
+  /** 꼭 있었으면 하는 옵션 항목들 */
+  requiredOptions: string[];
+  /** 주차 가능 여부가 꼭 필요한지 */
+  requireParking?: boolean;
+}
+
 export interface Photo {
   id: string;
   url: string;

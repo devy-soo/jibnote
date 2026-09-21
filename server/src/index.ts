@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import authRouter from "./routes/auth";
 import listingsRouter from "./routes/listings";
+import preferencesRouter from "./routes/preferences";
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 app.use("/api/auth", authRouter);
 app.use("/api/listings", listingsRouter);
+app.use("/api/preferences", preferencesRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: "Not found" });

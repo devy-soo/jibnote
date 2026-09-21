@@ -7,11 +7,13 @@ import { DeleteAccountDialog } from "../components/DeleteAccountDialog";
 import { useToast } from "../components/ToastProvider";
 import { useListingStore } from "../store/useListingStore";
 import { useAuthStore } from "../store/useAuthStore";
+import { usePreferencesStore } from "../store/usePreferencesStore";
 import { FILTER_OPTIONS } from "../constants/statuses";
 import { overallScore } from "../lib/score";
+import { computeMatch, hasPreferences } from "../lib/matchScore";
 import type { ListingStatus } from "../types";
 
-type SortMode = "recent" | "score-desc" | "score-asc" | "deposit-asc" | "rent-asc";
+type SortMode = "recent" | "score-desc" | "score-asc" | "deposit-asc" | "rent-asc" | "match-desc";
 
 const SORT_LABEL: Record<SortMode, string> = {
   recent: "최근 저장순",
@@ -19,6 +21,7 @@ const SORT_LABEL: Record<SortMode, string> = {
   "score-asc": "내 점수 낮은순",
   "deposit-asc": "보증금순",
   "rent-asc": "월세순",
+  "match-desc": "내 조건 일치순",
 };
 
 export function ListingList() {
@@ -28,12 +31,15 @@ export function ListingList() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const deleteAccount = useAuthStore((s) => s.deleteAccount);
+  const preferences = usePreferencesStore((s) => s.preferences);
   const { showToast } = useToast();
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"전체" | ListingStatus>("전체");
   const [sort, setSort] = useState<SortMode>("recent");
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+
+  const matchEnabled = hasPreferences(preferences);
 
   const visible = useMemo(() => {
     let list = listings.filter((l) => filter === "전체" || l.status === filter);
@@ -47,12 +53,17 @@ export function ListingList() {
       if (sort === "recent") return b.createdAt - a.createdAt;
       if (sort === "deposit-asc") return a.deposit - b.deposit;
       if (sort === "rent-asc") return (a.monthlyRent ?? 0) - (b.monthlyRent ?? 0);
+      if (sort === "match-desc") {
+        const ma = computeMatch(a, preferences)?.percent ?? -1;
+        const mb = computeMatch(b, preferences)?.percent ?? -1;
+        return mb - ma;
+      }
       const sa = overallScore(a.ratings) ?? -1;
       const sb = overallScore(b.ratings) ?? -1;
       return sort === "score-desc" ? sb - sa : sa - sb;
     });
     return list;
-  }, [listings, filter, query, sort]);
+  }, [listings, filter, query, sort, preferences]);
 
   return (
     <PageShell>
@@ -85,10 +96,25 @@ export function ListingList() {
                 저장한 매물 {listings.length}건
               </h1>
             </div>
-            <div className="grid h-[42px] w-[42px] flex-none place-items-center rounded-full bg-primary text-white">
-              <svg width="20" height="20" viewBox="0 0 64 64">
-                <path d="M32 14 12 30v20a2 2 0 0 0 2 2h12V38h12v14h12a2 2 0 0 0 2-2V30L32 14z" fill="currentColor" />
-              </svg>
+            <div className="flex flex-none items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigate("/preferences")}
+                aria-label="내 조건 설정"
+                className="grid h-[42px] w-[42px] place-items-center rounded-full border border-line bg-white text-ink-soft"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h13M21 18h-1" />
+                  <circle cx="15" cy="6" r="2.3" fill="#fff" />
+                  <circle cx="7" cy="12" r="2.3" fill="#fff" />
+                  <circle cx="19" cy="18" r="2.3" fill="#fff" />
+                </svg>
+              </button>
+              <div className="grid h-[42px] w-[42px] flex-none place-items-center rounded-full bg-primary text-white">
+                <svg width="20" height="20" viewBox="0 0 64 64">
+                  <path d="M32 14 12 30v20a2 2 0 0 0 2 2h12V38h12v14h12a2 2 0 0 0 2-2V30L32 14z" fill="currentColor" />
+                </svg>
+              </div>
             </div>
           </div>
 
@@ -134,17 +160,24 @@ export function ListingList() {
             onChange={(e) => setSort(e.target.value as SortMode)}
             className="border-0 bg-transparent text-[12.5px] font-bold text-primary outline-none"
           >
-            {(Object.keys(SORT_LABEL) as SortMode[]).map((key) => (
-              <option key={key} value={key}>
-                {SORT_LABEL[key]}
-              </option>
-            ))}
+            {(Object.keys(SORT_LABEL) as SortMode[])
+              .filter((key) => key !== "match-desc" || matchEnabled)
+              .map((key) => (
+                <option key={key} value={key}>
+                  {SORT_LABEL[key]}
+                </option>
+              ))}
           </select>
         </div>
 
         <div className="flex flex-col gap-3.5 px-5">
           {visible.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} onToggleSaved={toggleSaved} />
+            <ListingCard
+              key={listing.id}
+              listing={listing}
+              onToggleSaved={toggleSaved}
+              preferences={matchEnabled ? preferences : undefined}
+            />
           ))}
         </div>
 

@@ -4,11 +4,13 @@ import { ToastProvider } from "./components/ToastProvider";
 import { RequireAuth } from "./components/RequireAuth";
 import { useAuthStore } from "./store/useAuthStore";
 import { useListingStore } from "./store/useListingStore";
+import { usePreferencesStore } from "./store/usePreferencesStore";
 import { Login } from "./pages/auth/Login";
 import { Signup } from "./pages/auth/Signup";
 import { ListingList } from "./pages/ListingList";
 import { ListingDetail } from "./pages/ListingDetail";
 import { ListingForm } from "./pages/ListingForm";
+import { PreferencesForm } from "./pages/PreferencesForm";
 
 export default function App() {
   const initAuth = useAuthStore((s) => s.init);
@@ -16,6 +18,8 @@ export default function App() {
   const token = useAuthStore((s) => s.token);
   const fetchAll = useListingStore((s) => s.fetchAll);
   const reset = useListingStore((s) => s.reset);
+  const fetchPreferences = usePreferencesStore((s) => s.fetch);
+  const resetPreferences = usePreferencesStore((s) => s.reset);
 
   useEffect(() => {
     initAuth();
@@ -25,10 +29,12 @@ export default function App() {
     if (!initialized) return;
     if (token) {
       fetchAll().catch(() => {});
+      fetchPreferences().catch(() => {});
     } else {
       reset();
+      resetPreferences();
     }
-  }, [initialized, token, fetchAll, reset]);
+  }, [initialized, token, fetchAll, reset, fetchPreferences, resetPreferences]);
 
   return (
     <ToastProvider>
@@ -49,6 +55,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <ListingForm />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/preferences"
+            element={
+              <RequireAuth>
+                <PreferencesForm />
               </RequireAuth>
             }
           />

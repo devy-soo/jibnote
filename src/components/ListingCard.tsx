@@ -1,23 +1,27 @@
 import { useNavigate } from "react-router-dom";
-import type { Listing } from "../types";
+import type { Listing, Preferences } from "../types";
 import { StatusBadge } from "./StatusBadge";
 import { ScoreBar } from "./ScoreBar";
 import { resolveUploadUrl } from "../api/client";
 import { formatDealPrice, formatMeta } from "../lib/format";
 import { checklistTotals } from "../lib/score";
 import { overallScore, scoreToPercent } from "../lib/score";
+import { computeMatch } from "../lib/matchScore";
 
 export function ListingCard({
   listing,
   onToggleSaved,
+  preferences,
 }: {
   listing: Listing;
   onToggleSaved: (id: string) => void;
+  preferences?: Preferences;
 }) {
   const navigate = useNavigate();
   const firstPhotoUrl = listing.photos[0] ? resolveUploadUrl(listing.photos[0].url) : null;
   const { total, done } = checklistTotals(listing.checklist);
   const score = overallScore(listing.ratings);
+  const match = preferences ? computeMatch(listing, preferences) : null;
 
   return (
     <div className="animate-rise-in relative rounded-3xl border bg-white p-3.5" style={{ borderColor: listing.saved ? "rgba(43,91,226,.28)" : "rgba(13,27,52,.06)" }}>
@@ -59,6 +63,16 @@ export function ListingCard({
             체크 {done}/{total}
           </span>
         </div>
+        {match && (
+          <div className="mt-2 flex items-center gap-2.5">
+            <span className="flex-none text-[11px] font-bold text-ink-muted">내 조건</span>
+            <ScoreBar percent={`${match.percent}%`} gradient="linear-gradient(90deg,#FFD08A,#E8912A)" />
+            <span className="flex-none text-[12.5px] font-bold text-ink">{match.percent}%</span>
+            <span className="flex-none text-[11.5px] font-semibold text-ink-light">
+              {match.met}/{match.total}
+            </span>
+          </div>
+        )}
       </button>
       <button
         type="button"

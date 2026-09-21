@@ -26,8 +26,8 @@ export function computeMatch(listing: Listing, prefs: Preferences): MatchResult 
   }
   if (prefs.maxMonthlyRent != null) {
     criteria.push({
-      label: `월세 ${prefs.maxMonthlyRent}만원 이하`,
-      met: (listing.monthlyRent ?? 0) <= prefs.maxMonthlyRent,
+      label: `월세+관리비 ${prefs.maxMonthlyRent}만원 이하`,
+      met: (listing.monthlyRent ?? 0) + (listing.maintenanceFee ?? 0) <= prefs.maxMonthlyRent,
     });
   }
   if (prefs.minAreaSqm != null) {

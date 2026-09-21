@@ -99,7 +99,7 @@ export function PreferencesForm() {
             <Section label="보증금 상한 (만원)">
               <TextInput value={maxDeposit} onChange={setMaxDeposit} placeholder="예: 3000" type="number" />
             </Section>
-            <Section label="월세 상한 (만원)">
+            <Section label="월세+관리비 상한 (만원)">
               <TextInput value={maxMonthlyRent} onChange={setMaxMonthlyRent} placeholder="예: 60" type="number" />
             </Section>
             <Section label="전용면적 최소 (㎡)">

@@ -275,6 +275,12 @@ export function ListingDetail() {
                     </span>
                   </div>
                 )}
+                {listing.loanAmount != null && (
+                  <div className="mt-3 flex items-baseline justify-between border-t border-line pt-3">
+                    <span className="text-[12.5px] font-semibold text-ink-muted">융자금 (근저당)</span>
+                    <span className="text-[15px] font-bold text-ink">{formatManwon(listing.loanAmount)}</span>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-2.5">
@@ -297,6 +303,7 @@ export function ListingDetail() {
                   value={listing.totalFloors != null ? `${listing.totalFloors}층` : "미입력"}
                 />
                 <InfoTile label="사용승인일" value={listing.approvalDate || "미입력"} />
+                <InfoTile label="입주가능일" value={listing.moveInDate || "미입력"} />
                 <InfoTile
                   label="주차 가능 여부"
                   value={

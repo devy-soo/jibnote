@@ -18,11 +18,13 @@ export interface ListingPayload {
   direction?: string;
   totalFloors?: number;
   approvalDate?: string;
+  moveInDate?: string;
   isViolationBuilding?: boolean;
   isFakeListing?: boolean;
   parkingAvailable?: boolean;
   options: string[];
   maintenanceFee?: number;
+  loanAmount?: number;
   maintenanceFeeIncludes: string[];
   walkMinutes?: number;
   nearestStation?: string;
@@ -80,6 +82,7 @@ function buildFormData(payload: ListingPayload): FormData {
   if (payload.direction) fd.append("direction", payload.direction);
   if (payload.totalFloors != null) fd.append("totalFloors", String(payload.totalFloors));
   if (payload.approvalDate) fd.append("approvalDate", payload.approvalDate);
+  if (payload.moveInDate) fd.append("moveInDate", payload.moveInDate);
   if (payload.isViolationBuilding != null) {
     fd.append("isViolationBuilding", String(payload.isViolationBuilding));
   }
@@ -91,6 +94,7 @@ function buildFormData(payload: ListingPayload): FormData {
   }
   fd.append("options", JSON.stringify(payload.options));
   if (payload.maintenanceFee != null) fd.append("maintenanceFee", String(payload.maintenanceFee));
+  if (payload.loanAmount != null) fd.append("loanAmount", String(payload.loanAmount));
   fd.append("maintenanceFeeIncludes", JSON.stringify(payload.maintenanceFeeIncludes));
   if (payload.walkMinutes != null) fd.append("walkMinutes", String(payload.walkMinutes));
   if (payload.nearestStation) fd.append("nearestStation", payload.nearestStation);

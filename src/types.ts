@@ -77,6 +77,8 @@ export interface Listing {
   totalFloors?: number;
   /** 사용승인일 (예: "2010-05") */
   approvalDate?: string;
+  /** 입주가능일 (예: "2026-10-01", "즉시입주") */
+  moveInDate?: string;
   /** 위반건축물 여부 */
   isViolationBuilding?: boolean;
   /** 허위매물 의심 여부 */
@@ -87,6 +89,8 @@ export interface Listing {
   options: string[];
   /** 관리비, 단위: 만원 */
   maintenanceFee?: number;
+  /** 융자금/근저당 설정 금액, 단위: 만원 */
+  loanAmount?: number;
   /** 관리비에 포함된 항목 (예: 수도, 인터넷) */
   maintenanceFeeIncludes: string[];
   /** 역까지 도보 분 */

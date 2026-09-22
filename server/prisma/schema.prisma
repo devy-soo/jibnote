@@ -34,11 +34,13 @@ model Listing {
   direction              String?
   totalFloors            Int?
   approvalDate           String?
+  moveInDate             String?
   isViolationBuilding    Boolean?
   isFakeListing          Boolean?
   parkingAvailable       Boolean?
   options                String   @default("[]")
   maintenanceFee         Int?
+  loanAmount             Int?
   maintenanceFeeIncludes String   @default("[]")
   walkMinutes            Int?
   nearestStation         String?

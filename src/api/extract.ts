@@ -21,10 +21,12 @@ export interface ExtractedListing {
   direction?: string;
   totalFloors?: number;
   approvalDate?: string;
+  moveInDate?: string;
   isViolationBuilding?: boolean;
   parkingAvailable?: boolean;
   options?: string[];
   maintenanceFee?: number;
+  loanAmount?: number;
   walkMinutes?: number;
   nearestStation?: string;
   address?: string;

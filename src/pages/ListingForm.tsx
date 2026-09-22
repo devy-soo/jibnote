@@ -65,11 +65,13 @@ export function ListingForm() {
   const [direction, setDirection] = useState("");
   const [totalFloors, setTotalFloors] = useState("");
   const [approvalDate, setApprovalDate] = useState("");
+  const [moveInDate, setMoveInDate] = useState("");
   const [isViolationBuilding, setIsViolationBuilding] = useState<boolean | undefined>(undefined);
   const [isFakeListing, setIsFakeListing] = useState<boolean | undefined>(undefined);
   const [parkingAvailable, setParkingAvailable] = useState<boolean | undefined>(undefined);
   const [options, setOptions] = useState<string[]>([]);
   const [maintenanceFee, setMaintenanceFee] = useState("");
+  const [loanAmount, setLoanAmount] = useState("");
   const [maintenanceFeeIncludes, setMaintenanceFeeIncludes] = useState<string[]>([]);
   const [walkMinutes, setWalkMinutes] = useState("");
   const [nearestStation, setNearestStation] = useState("");
@@ -109,11 +111,13 @@ export function ListingForm() {
       setDirection(existing.direction ?? "");
       setTotalFloors(existing.totalFloors != null ? String(existing.totalFloors) : "");
       setApprovalDate(existing.approvalDate ?? "");
+      setMoveInDate(existing.moveInDate ?? "");
       setIsViolationBuilding(existing.isViolationBuilding ?? undefined);
       setIsFakeListing(existing.isFakeListing ?? undefined);
       setParkingAvailable(existing.parkingAvailable ?? undefined);
       setOptions(existing.options ?? []);
       setMaintenanceFee(existing.maintenanceFee ? String(existing.maintenanceFee) : "");
+      setLoanAmount(existing.loanAmount ? String(existing.loanAmount) : "");
       setMaintenanceFeeIncludes(existing.maintenanceFeeIncludes ?? []);
       setWalkMinutes(existing.walkMinutes ? String(existing.walkMinutes) : "");
       setNearestStation(existing.nearestStation ?? "");
@@ -244,10 +248,12 @@ export function ListingForm() {
     apply(!!ex.direction, () => setDirection(ex.direction!));
     apply(ex.totalFloors != null, () => setTotalFloors(String(ex.totalFloors)));
     apply(!!ex.approvalDate, () => setApprovalDate(ex.approvalDate!));
+    apply(!!ex.moveInDate, () => setMoveInDate(ex.moveInDate!));
     apply(ex.isViolationBuilding != null, () => setIsViolationBuilding(ex.isViolationBuilding));
     apply(ex.parkingAvailable != null, () => setParkingAvailable(ex.parkingAvailable));
     apply(!!ex.options?.length, () => setOptions(ex.options!));
     apply(ex.maintenanceFee != null, () => setMaintenanceFee(String(ex.maintenanceFee)));
+    apply(ex.loanAmount != null, () => setLoanAmount(String(ex.loanAmount)));
     apply(ex.walkMinutes != null, () => setWalkMinutes(String(ex.walkMinutes)));
     apply(!!ex.nearestStation, () => setNearestStation(ex.nearestStation!));
     apply(!!ex.address, () => setAddress(ex.address!));
@@ -364,11 +370,13 @@ export function ListingForm() {
       direction: direction || undefined,
       totalFloors: totalFloors ? Number(totalFloors) : undefined,
       approvalDate: approvalDate.trim() || undefined,
+      moveInDate: moveInDate.trim() || undefined,
       isViolationBuilding,
       isFakeListing,
       parkingAvailable,
       options,
       maintenanceFee: maintenanceFee ? Number(maintenanceFee) : undefined,
+      loanAmount: loanAmount ? Number(loanAmount) : undefined,
       maintenanceFeeIncludes,
       walkMinutes: walkMinutes ? Number(walkMinutes) : undefined,
       nearestStation: nearestStation.trim() || undefined,
@@ -747,6 +755,9 @@ export function ListingForm() {
             <Section label="관리비 (만원)">
               <TextInput value={maintenanceFee} onChange={setMaintenanceFee} placeholder="예: 8" type="number" />
             </Section>
+            <Section label="융자금 (만원)">
+              <TextInput value={loanAmount} onChange={setLoanAmount} placeholder="예: 5000" type="number" />
+            </Section>
           </div>
 
           <Section label="관리비 포함 항목">
@@ -834,9 +845,14 @@ export function ListingForm() {
             </div>
           </Section>
 
-          <Section label="사용승인일">
-            <TextInput value={approvalDate} onChange={setApprovalDate} placeholder="예: 2010-05" />
-          </Section>
+          <div className="grid grid-cols-2 gap-3">
+            <Section label="사용승인일">
+              <TextInput value={approvalDate} onChange={setApprovalDate} placeholder="예: 2010.05, 2010-05-01" />
+            </Section>
+            <Section label="입주가능일">
+              <TextInput value={moveInDate} onChange={setMoveInDate} placeholder="예: 즉시입주, 2026.10.01" />
+            </Section>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <Section label="위반건축물 여부">

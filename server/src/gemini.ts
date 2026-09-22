@@ -20,10 +20,12 @@ export interface ExtractedListing {
   direction?: string;
   totalFloors?: number;
   approvalDate?: string;
+  moveInDate?: string;
   isViolationBuilding?: boolean;
   parkingAvailable?: boolean;
   options?: string[];
   maintenanceFee?: number;
+  loanAmount?: number;
   walkMinutes?: number;
   nearestStation?: string;
   address?: string;
@@ -52,10 +54,12 @@ const RESPONSE_SCHEMA = {
     },
     totalFloors: { type: "number" },
     approvalDate: { type: "string" },
+    moveInDate: { type: "string" },
     isViolationBuilding: { type: "boolean" },
     parkingAvailable: { type: "boolean" },
     options: { type: "array", items: { type: "string" } },
     maintenanceFee: { type: "number" },
+    loanAmount: { type: "number" },
     walkMinutes: { type: "number" },
     nearestStation: { type: "string" },
     address: { type: "string" },
@@ -97,10 +101,12 @@ const PROMPT = `이 이미지는 한국 부동산 매물(전세/월세/반전세
 - direction: 방향 (남향/남동향/남서향/동향/서향/북향/북동향/북서향 중 하나, 명시돼 있을 때만)
 - totalFloors: 건물 총 층수, 숫자만
 - approvalDate: 사용승인일 (예: "2010-05" 형식, 연월만 있으면 연월까지만)
+- moveInDate: 입주가능일 (예: "2026-10-01", "즉시입주", "협의가능"처럼 원문 표현 그대로)
 - isViolationBuilding: 위반건축물 여부 (true/false, 명시돼 있을 때만)
 - parkingAvailable: 주차 가능 여부 (true/false, 명시돼 있을 때만)
 - options: 풀옵션/옵션 항목 배열 (냉장고, 세탁기, 에어컨, 가스레인지/인덕션, 옷장, 책상, 침대, TV, 신발장, 전자레인지 중 화면에 보이는 것만)
 - maintenanceFee: 관리비, 만원 단위 숫자
+- loanAmount: 융자금/근저당 설정 금액, 만원 단위 숫자 (등기부등본 요약이나 매물 설명에 명시돼 있을 때만)
 - walkMinutes: 역까지 도보 시간, 분 단위 숫자
 - nearestStation: 가까운 지하철역 이름 (예: "2호선 강남역")
 - address: 주소
@@ -124,10 +130,12 @@ const URL_PROMPT = `아래는 한국 부동산 매물(전세/월세/반전세/�
 - direction: 방향 (남향/남동향/남서향/동향/서향/북향/북동향/북서향 중 하나, 명시돼 있을 때만)
 - totalFloors: 건물 총 층수, 숫자만
 - approvalDate: 사용승인일 (예: "2010-05" 형식, 연월만 있으면 연월까지만)
+- moveInDate: 입주가능일 (예: "2026-10-01", "즉시입주", "협의가능"처럼 원문 표현 그대로)
 - isViolationBuilding: 위반건축물 여부 (true/false, 명시돼 있을 때만)
 - parkingAvailable: 주차 가능 여부 (true/false, 명시돼 있을 때만)
 - options: 풀옵션/옵션 항목 배열 (냉장고, 세탁기, 에어컨, 가스레인지/인덕션, 옷장, 책상, 침대, TV, 신발장, 전자레인지 중 텍스트에 보이는 것만)
 - maintenanceFee: 관리비, 만원 단위 숫자
+- loanAmount: 융자금/근저당 설정 금액, 만원 단위 숫자 (등기부등본 요약이나 매물 설명에 명시돼 있을 때만)
 - walkMinutes: 역까지 도보 시간, 분 단위 숫자
 - nearestStation: 가까운 지하철역 이름 (예: "2호선 강남역")
 - address: 주소

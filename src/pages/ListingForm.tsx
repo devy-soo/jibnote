@@ -522,7 +522,7 @@ export function ListingForm() {
               onClick={() => setStep("form")}
               className="mt-1 text-[12.5px] font-bold text-ink-light underline underline-offset-2"
             >
-              사진 없이 직접 입력할게요
+              직접 입력할게요
             </button>
           </div>
         </div>
@@ -705,27 +705,6 @@ export function ListingForm() {
             <TextInput value={sourceUrl} onChange={setSourceUrl} placeholder="https://..." />
           </Section>
 
-          <Section label="건축물 용도">
-            <TextInput value={buildingType} onChange={setBuildingType} placeholder="예: 다세대주택(빌라)" />
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {BUILDING_TYPE_PRESETS.map((b) => (
-                <button
-                  key={b}
-                  type="button"
-                  onClick={() => setBuildingType(b)}
-                  className="rounded-lg px-2.5 py-1 text-[11.5px] font-bold"
-                  style={{
-                    background: buildingType === b ? "#E8EEFD" : "#fff",
-                    color: buildingType === b ? "#1D3FAF" : "#5B6B8C",
-                    border: `1px solid ${buildingType === b ? "#2B5BE2" : "rgba(13,27,52,.1)"}`,
-                  }}
-                >
-                  {b}
-                </button>
-              ))}
-            </div>
-          </Section>
-
           <Section label="거래 유형">
             <div className="flex gap-2">
               {DEAL_TYPES.map((d) => (
@@ -746,15 +725,42 @@ export function ListingForm() {
             </div>
           </Section>
 
-          <Section label={depositLabel(dealType)}>
-            <TextInput value={deposit} onChange={setDeposit} placeholder="예: 3000" type="number" />
-          </Section>
-
-          {RENT_TYPES.includes(dealType) && (
-            <Section label="월세 (만원)">
-              <TextInput value={monthlyRent} onChange={setMonthlyRent} placeholder="예: 55" type="number" />
+          <div className="grid grid-cols-2 gap-3">
+            <Section label={depositLabel(dealType)}>
+              <TextInput value={deposit} onChange={setDeposit} placeholder="예: 3000" type="number" />
             </Section>
-          )}
+            {RENT_TYPES.includes(dealType) && (
+              <Section label="월세 (만원)">
+                <TextInput value={monthlyRent} onChange={setMonthlyRent} placeholder="예: 55" type="number" />
+              </Section>
+            )}
+            <Section label="관리비 (만원)">
+              <TextInput value={maintenanceFee} onChange={setMaintenanceFee} placeholder="예: 8" type="number" />
+            </Section>
+          </div>
+
+          <Section label="관리비 포함 항목">
+            <div className="flex flex-wrap gap-1.5">
+              {MAINTENANCE_FEE_ITEMS.map((item) => {
+                const active = maintenanceFeeIncludes.includes(item);
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => toggleFeeItem(item)}
+                    className="rounded-lg px-2.5 py-1.5 text-[12px] font-bold"
+                    style={{
+                      background: active ? "#E2F6EF" : "#fff",
+                      color: active ? "#0B7355" : "#5B6B8C",
+                      border: `1px solid ${active ? "#0B7355" : "rgba(13,27,52,.1)"}`,
+                    }}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
 
           <div className="grid grid-cols-2 gap-3">
             <Section label="전용 면적 (㎡)">
@@ -769,14 +775,8 @@ export function ListingForm() {
             <Section label="층수">
               <TextInput value={floorNumber} onChange={setFloorNumber} placeholder="예: 3 (반지하는 0)" type="number" />
             </Section>
-            <Section label="관리비 (만원)">
-              <TextInput value={maintenanceFee} onChange={setMaintenanceFee} placeholder="예: 8" type="number" />
-            </Section>
             <Section label="건물 총 층수">
               <TextInput value={totalFloors} onChange={setTotalFloors} placeholder="예: 5" type="number" />
-            </Section>
-            <Section label="사용승인일">
-              <TextInput value={approvalDate} onChange={setApprovalDate} placeholder="예: 2010-05" />
             </Section>
           </div>
 
@@ -803,6 +803,31 @@ export function ListingForm() {
             </div>
           </Section>
 
+          <Section label="건축물 용도">
+            <TextInput value={buildingType} onChange={setBuildingType} placeholder="예: 다세대주택(빌라)" />
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {BUILDING_TYPE_PRESETS.map((b) => (
+                <button
+                  key={b}
+                  type="button"
+                  onClick={() => setBuildingType(b)}
+                  className="rounded-lg px-2.5 py-1 text-[11.5px] font-bold"
+                  style={{
+                    background: buildingType === b ? "#E8EEFD" : "#fff",
+                    color: buildingType === b ? "#1D3FAF" : "#5B6B8C",
+                    border: `1px solid ${buildingType === b ? "#2B5BE2" : "rgba(13,27,52,.1)"}`,
+                  }}
+                >
+                  {b}
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          <Section label="사용승인일">
+            <TextInput value={approvalDate} onChange={setApprovalDate} placeholder="예: 2010-05" />
+          </Section>
+
           <div className="grid grid-cols-2 gap-3">
             <Section label="위반건축물 여부">
               <YesNoToggle value={isViolationBuilding} onChange={setIsViolationBuilding} />
@@ -824,29 +849,6 @@ export function ListingForm() {
                     key={item}
                     type="button"
                     onClick={() => toggleOption(item)}
-                    className="rounded-lg px-2.5 py-1.5 text-[12px] font-bold"
-                    style={{
-                      background: active ? "#E2F6EF" : "#fff",
-                      color: active ? "#0B7355" : "#5B6B8C",
-                      border: `1px solid ${active ? "#0B7355" : "rgba(13,27,52,.1)"}`,
-                    }}
-                  >
-                    {item}
-                  </button>
-                );
-              })}
-            </div>
-          </Section>
-
-          <Section label="관리비 포함 항목">
-            <div className="flex flex-wrap gap-1.5">
-              {MAINTENANCE_FEE_ITEMS.map((item) => {
-                const active = maintenanceFeeIncludes.includes(item);
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => toggleFeeItem(item)}
                     className="rounded-lg px-2.5 py-1.5 text-[12px] font-bold"
                     style={{
                       background: active ? "#E2F6EF" : "#fff",

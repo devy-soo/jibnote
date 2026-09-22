@@ -327,6 +327,16 @@ export function ListingForm() {
     setTags((prev) => prev.filter((x) => x !== t));
   }
 
+  function handleFormBack() {
+    // capture 단계에서 넘어온 새 매물 작성 중이면, 페이지를 나가는 대신
+    // capture 단계로 돌아가서 입력하던 내용을 잃지 않게 한다.
+    if (!isEdit) {
+      setStep("capture");
+    } else {
+      navigate(-1);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) {
@@ -559,7 +569,7 @@ export function ListingForm() {
         <div className="flex items-center gap-3 px-5 pb-2 pt-6">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={handleFormBack}
             className="grid h-9 w-9 flex-none place-items-center rounded-xl bg-white shadow-sm"
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0D1B34" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">

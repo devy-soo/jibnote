@@ -75,6 +75,10 @@ export interface Listing {
   direction?: string;
   /** 건물 총 층수 */
   totalFloors?: number;
+  /** 건물 총 세대수 */
+  totalUnits?: number;
+  /** 건물 총 주차 가능대수 */
+  totalParkingSpots?: number;
   /** 사용승인일 (예: "2010-05") */
   approvalDate?: string;
   /** 입주가능일 (예: "2026-10-01", "즉시입주") */
@@ -89,7 +93,7 @@ export interface Listing {
   options: string[];
   /** 관리비, 단위: 만원 */
   maintenanceFee?: number;
-  /** 융자금/근저당 설정 금액, 단위: 만원 */
+  /** 집주인 융자금(근저당 설정 금액), 단위: 만원 */
   loanAmount?: number;
   /** 관리비에 포함된 항목 (예: 수도, 인터넷) */
   maintenanceFeeIncludes: string[];

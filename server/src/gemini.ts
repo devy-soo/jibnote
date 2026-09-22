@@ -19,6 +19,8 @@ export interface ExtractedListing {
   floorNumber?: number;
   direction?: string;
   totalFloors?: number;
+  totalUnits?: number;
+  totalParkingSpots?: number;
   approvalDate?: string;
   moveInDate?: string;
   isViolationBuilding?: boolean;
@@ -53,6 +55,8 @@ const RESPONSE_SCHEMA = {
       enum: ["남향", "남동향", "남서향", "동향", "서향", "북향", "북동향", "북서향"],
     },
     totalFloors: { type: "number" },
+    totalUnits: { type: "number" },
+    totalParkingSpots: { type: "number" },
     approvalDate: { type: "string" },
     moveInDate: { type: "string" },
     isViolationBuilding: { type: "boolean" },
@@ -100,13 +104,15 @@ const PROMPT = `이 이미지는 한국 부동산 매물(전세/월세/반전세
 - floorNumber: 이 매물이 있는 층수, 숫자만 (반지하/지하는 음수나 0, 예: 반지하는 0)
 - direction: 방향 (남향/남동향/남서향/동향/서향/북향/북동향/북서향 중 하나, 명시돼 있을 때만)
 - totalFloors: 건물 총 층수, 숫자만
+- totalUnits: 건물 총 세대수, 숫자만
+- totalParkingSpots: 건물 총 주차 가능대수, 숫자만
 - approvalDate: 사용승인일 (예: "2010-05" 형식, 연월만 있으면 연월까지만)
 - moveInDate: 입주가능일 (예: "2026-10-01", "즉시입주", "협의가능"처럼 원문 표현 그대로)
 - isViolationBuilding: 위반건축물 여부 (true/false, 명시돼 있을 때만)
 - parkingAvailable: 주차 가능 여부 (true/false, 명시돼 있을 때만)
-- options: 풀옵션/옵션 항목 배열 (냉장고, 세탁기, 에어컨, 가스레인지/인덕션, 옷장, 책상, 침대, TV, 신발장, 전자레인지 중 화면에 보이는 것만)
+- options: 풀옵션/옵션 항목 배열 (냉장고, 세탁기, 에어컨, 가스레인지, 인덕션, 하일라이트, 전자레인지, 싱크대, 옷장, 책상, 침대, TV, 신발장, 엘리베이터, CCTV, 현관보안 중 화면에 보이는 것만)
 - maintenanceFee: 관리비, 만원 단위 숫자
-- loanAmount: 융자금/근저당 설정 금액, 만원 단위 숫자 (등기부등본 요약이나 매물 설명에 명시돼 있을 때만)
+- loanAmount: 집주인 융자금(근저당 설정 금액), 만원 단위 숫자 (등기부등본 요약이나 매물 설명에 명시돼 있을 때만)
 - walkMinutes: 역까지 도보 시간, 분 단위 숫자
 - nearestStation: 가까운 지하철역 이름 (예: "2호선 강남역")
 - address: 주소
@@ -129,13 +135,15 @@ const URL_PROMPT = `아래는 한국 부동산 매물(전세/월세/반전세/�
 - floorNumber: 이 매물이 있는 층수, 숫자만 (반지하/지하는 음수나 0)
 - direction: 방향 (남향/남동향/남서향/동향/서향/북향/북동향/북서향 중 하나, 명시돼 있을 때만)
 - totalFloors: 건물 총 층수, 숫자만
+- totalUnits: 건물 총 세대수, 숫자만
+- totalParkingSpots: 건물 총 주차 가능대수, 숫자만
 - approvalDate: 사용승인일 (예: "2010-05" 형식, 연월만 있으면 연월까지만)
 - moveInDate: 입주가능일 (예: "2026-10-01", "즉시입주", "협의가능"처럼 원문 표현 그대로)
 - isViolationBuilding: 위반건축물 여부 (true/false, 명시돼 있을 때만)
 - parkingAvailable: 주차 가능 여부 (true/false, 명시돼 있을 때만)
-- options: 풀옵션/옵션 항목 배열 (냉장고, 세탁기, 에어컨, 가스레인지/인덕션, 옷장, 책상, 침대, TV, 신발장, 전자레인지 중 텍스트에 보이는 것만)
+- options: 풀옵션/옵션 항목 배열 (냉장고, 세탁기, 에어컨, 가스레인지, 인덕션, 하일라이트, 전자레인지, 싱크대, 옷장, 책상, 침대, TV, 신발장, 엘리베이터, CCTV, 현관보안 중 텍스트에 보이는 것만)
 - maintenanceFee: 관리비, 만원 단위 숫자
-- loanAmount: 융자금/근저당 설정 금액, 만원 단위 숫자 (등기부등본 요약이나 매물 설명에 명시돼 있을 때만)
+- loanAmount: 집주인 융자금(근저당 설정 금액), 만원 단위 숫자 (등기부등본 요약이나 매물 설명에 명시돼 있을 때만)
 - walkMinutes: 역까지 도보 시간, 분 단위 숫자
 - nearestStation: 가까운 지하철역 이름 (예: "2호선 강남역")
 - address: 주소

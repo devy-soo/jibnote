@@ -20,6 +20,8 @@ export interface ExtractedListing {
   floorNumber?: number;
   direction?: string;
   totalFloors?: number;
+  totalUnits?: number;
+  totalParkingSpots?: number;
   approvalDate?: string;
   moveInDate?: string;
   isViolationBuilding?: boolean;

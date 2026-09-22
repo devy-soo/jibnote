@@ -33,6 +33,8 @@ model Listing {
   floorNumber            Int?
   direction              String?
   totalFloors            Int?
+  totalUnits             Int?
+  totalParkingSpots      Int?
   approvalDate           String?
   moveInDate             String?
   isViolationBuilding    Boolean?

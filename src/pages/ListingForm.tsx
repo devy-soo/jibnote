@@ -64,6 +64,8 @@ export function ListingForm() {
   const [floorNumber, setFloorNumber] = useState("");
   const [direction, setDirection] = useState("");
   const [totalFloors, setTotalFloors] = useState("");
+  const [totalUnits, setTotalUnits] = useState("");
+  const [totalParkingSpots, setTotalParkingSpots] = useState("");
   const [approvalDate, setApprovalDate] = useState("");
   const [moveInDate, setMoveInDate] = useState("");
   const [isViolationBuilding, setIsViolationBuilding] = useState<boolean | undefined>(undefined);
@@ -110,6 +112,8 @@ export function ListingForm() {
       setFloorNumber(existing.floorNumber != null ? String(existing.floorNumber) : "");
       setDirection(existing.direction ?? "");
       setTotalFloors(existing.totalFloors != null ? String(existing.totalFloors) : "");
+      setTotalUnits(existing.totalUnits != null ? String(existing.totalUnits) : "");
+      setTotalParkingSpots(existing.totalParkingSpots != null ? String(existing.totalParkingSpots) : "");
       setApprovalDate(existing.approvalDate ?? "");
       setMoveInDate(existing.moveInDate ?? "");
       setIsViolationBuilding(existing.isViolationBuilding ?? undefined);
@@ -247,6 +251,8 @@ export function ListingForm() {
     apply(ex.floorNumber != null, () => setFloorNumber(String(ex.floorNumber)));
     apply(!!ex.direction, () => setDirection(ex.direction!));
     apply(ex.totalFloors != null, () => setTotalFloors(String(ex.totalFloors)));
+    apply(ex.totalUnits != null, () => setTotalUnits(String(ex.totalUnits)));
+    apply(ex.totalParkingSpots != null, () => setTotalParkingSpots(String(ex.totalParkingSpots)));
     apply(!!ex.approvalDate, () => setApprovalDate(ex.approvalDate!));
     apply(!!ex.moveInDate, () => setMoveInDate(ex.moveInDate!));
     apply(ex.isViolationBuilding != null, () => setIsViolationBuilding(ex.isViolationBuilding));
@@ -369,6 +375,8 @@ export function ListingForm() {
       floorNumber: floorNumber ? Number(floorNumber) : undefined,
       direction: direction || undefined,
       totalFloors: totalFloors ? Number(totalFloors) : undefined,
+      totalUnits: totalUnits ? Number(totalUnits) : undefined,
+      totalParkingSpots: totalParkingSpots ? Number(totalParkingSpots) : undefined,
       approvalDate: approvalDate.trim() || undefined,
       moveInDate: moveInDate.trim() || undefined,
       isViolationBuilding,
@@ -755,7 +763,7 @@ export function ListingForm() {
             <Section label="관리비 (만원)">
               <TextInput value={maintenanceFee} onChange={setMaintenanceFee} placeholder="예: 8" type="number" />
             </Section>
-            <Section label="융자금 (만원)">
+            <Section label="집주인 융자금 (만원)">
               <TextInput value={loanAmount} onChange={setLoanAmount} placeholder="예: 5000" type="number" />
             </Section>
           </div>
@@ -798,6 +806,12 @@ export function ListingForm() {
             </Section>
             <Section label="건물 총 층수">
               <TextInput value={totalFloors} onChange={setTotalFloors} placeholder="예: 5" type="number" />
+            </Section>
+            <Section label="총 세대수">
+              <TextInput value={totalUnits} onChange={setTotalUnits} placeholder="예: 20" type="number" />
+            </Section>
+            <Section label="총 주차 가능대수">
+              <TextInput value={totalParkingSpots} onChange={setTotalParkingSpots} placeholder="예: 10" type="number" />
             </Section>
           </div>
 

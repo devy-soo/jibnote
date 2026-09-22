@@ -17,6 +17,8 @@ export interface ListingPayload {
   floorNumber?: number;
   direction?: string;
   totalFloors?: number;
+  totalUnits?: number;
+  totalParkingSpots?: number;
   approvalDate?: string;
   moveInDate?: string;
   isViolationBuilding?: boolean;
@@ -81,6 +83,10 @@ function buildFormData(payload: ListingPayload): FormData {
   if (payload.floorNumber != null) fd.append("floorNumber", String(payload.floorNumber));
   if (payload.direction) fd.append("direction", payload.direction);
   if (payload.totalFloors != null) fd.append("totalFloors", String(payload.totalFloors));
+  if (payload.totalUnits != null) fd.append("totalUnits", String(payload.totalUnits));
+  if (payload.totalParkingSpots != null) {
+    fd.append("totalParkingSpots", String(payload.totalParkingSpots));
+  }
   if (payload.approvalDate) fd.append("approvalDate", payload.approvalDate);
   if (payload.moveInDate) fd.append("moveInDate", payload.moveInDate);
   if (payload.isViolationBuilding != null) {

@@ -71,11 +71,16 @@ export default {
           from: { opacity: 0, transform: "translateY(10px)" },
           to: { opacity: 1, transform: "none" },
         },
+        "progress-indeterminate": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(250%)" },
+        },
       },
       animation: {
         "slide-up": "slide-up .28s cubic-bezier(.2,.8,.3,1) both",
         "fade-in": "fade-in .2s ease both",
         "rise-in": "rise-in .3s ease both",
+        "progress-indeterminate": "progress-indeterminate 1.1s ease-in-out infinite",
       },
     },
   },

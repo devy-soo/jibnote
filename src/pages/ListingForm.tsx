@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PageShell } from "../components/PageShell";
 import { ImageCropModal } from "../components/ImageCropModal";
+import { ProgressBar } from "../components/ProgressBar";
 import { useListingStore } from "../store/useListingStore";
 import { useToast } from "../components/ToastProvider";
 import { useObjectUrls } from "../lib/useObjectUrls";
@@ -95,6 +96,7 @@ export function ListingForm() {
   const [extracting, setExtracting] = useState(false);
   const [listingUrlInput, setListingUrlInput] = useState("");
   const [extractingUrl, setExtractingUrl] = useState(false);
+  const [captureError, setCaptureError] = useState<string | null>(null);
   const [step, setStep] = useState<"capture" | "form">(isEdit ? "form" : "capture");
 
   useEffect(() => {
@@ -272,6 +274,7 @@ export function ListingForm() {
   async function handleExtract() {
     if (!captureFile) return;
     setExtracting(true);
+    setCaptureError(null);
     try {
       const ex = await extractListingFromPhoto(captureFile);
       const filled = applyExtracted(ex);
@@ -303,7 +306,9 @@ export function ListingForm() {
       );
       setStep("form");
     } catch {
-      showToast("이미지 분석에 실패했어요. 직접 입력해 주세요");
+      const message = "이미지 분석에 실패했어요. 직접 입력해 주세요";
+      setCaptureError(message);
+      showToast(message);
     } finally {
       setExtracting(false);
     }
@@ -313,6 +318,7 @@ export function ListingForm() {
     const url = listingUrlInput.trim();
     if (!url) return;
     setExtractingUrl(true);
+    setCaptureError(null);
     try {
       const ex = await extractListingFromUrl(url);
       const filled = applyExtracted(ex);
@@ -323,7 +329,9 @@ export function ListingForm() {
       );
       setStep("form");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "매물 정보를 읽는 데 실패했어요");
+      const message = err instanceof Error ? err.message : "매물 정보를 읽는 데 실패했어요";
+      setCaptureError(message);
+      showToast(message);
     } finally {
       setExtractingUrl(false);
     }
@@ -471,7 +479,8 @@ export function ListingForm() {
                     <button
                       type="button"
                       onClick={() => setCaptureFile(null)}
-                      className="flex-none rounded-xl border border-line bg-white px-4 py-3 text-[12.5px] font-bold text-ink-soft"
+                      disabled={extracting}
+                      className="flex-none rounded-xl border border-line bg-white px-4 py-3 text-[12.5px] font-bold text-ink-soft disabled:opacity-60"
                     >
                       다시 선택
                     </button>
@@ -493,6 +502,11 @@ export function ListingForm() {
                       )}
                     </button>
                   </div>
+                  {extracting && (
+                    <div className="w-full">
+                      <ProgressBar label="AI가 이미지를 분석하고 있어요..." />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <label className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40 bg-[#F5F8FE] py-12 text-[13px] font-bold text-primary-dark">
@@ -520,28 +534,38 @@ export function ListingForm() {
               <div className="h-px flex-1 bg-line" />
             </div>
 
-            <div className="flex w-full max-w-sm gap-2">
-              <input
-                value={listingUrlInput}
-                onChange={(e) => setListingUrlInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleExtractFromUrl();
-                  }
-                }}
-                placeholder="매물 링크 붙여넣기"
-                className="w-full min-w-0 flex-1 rounded-2xl border border-line bg-white px-3.5 py-3 text-[13px] font-medium text-ink outline-none focus:border-primary"
-              />
-              <button
-                type="button"
-                onClick={handleExtractFromUrl}
-                disabled={extractingUrl || !listingUrlInput.trim()}
-                className="flex-none rounded-xl bg-primary px-4 py-3 text-[13px] font-bold text-white disabled:opacity-60"
-              >
-                {extractingUrl ? "불러오는 중..." : "채우기"}
-              </button>
+            <div className="flex w-full max-w-sm flex-col gap-2">
+              <div className="flex w-full gap-2">
+                <input
+                  value={listingUrlInput}
+                  onChange={(e) => setListingUrlInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleExtractFromUrl();
+                    }
+                  }}
+                  placeholder="매물 링크 붙여넣기"
+                  className="w-full min-w-0 flex-1 rounded-2xl border border-line bg-white px-3.5 py-3 text-[13px] font-medium text-ink outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={handleExtractFromUrl}
+                  disabled={extractingUrl || !listingUrlInput.trim()}
+                  className="flex-none rounded-xl bg-primary px-4 py-3 text-[13px] font-bold text-white disabled:opacity-60"
+                >
+                  {extractingUrl ? "불러오는 중..." : "채우기"}
+                </button>
+              </div>
+              {extractingUrl && <ProgressBar label="매물 페이지를 읽고 있어요..." />}
             </div>
+
+            {captureError && (
+              <div className="flex w-full max-w-sm items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-[12.5px] font-semibold text-rose-600">
+                <span className="flex-none">⚠</span>
+                <span>{captureError}</span>
+              </div>
+            )}
 
             <button
               type="button"

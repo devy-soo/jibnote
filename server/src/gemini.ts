@@ -1,4 +1,4 @@
-const GEMINI_MODEL = "gemini-3.5-flash";
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
 
 export interface ExtractedAgent {
   name?: string;
@@ -87,6 +87,35 @@ const RESPONSE_SCHEMA = {
       },
     },
   },
+  propertyOrdering: [
+    "title",
+    "listingNumber",
+    "platform",
+    "sourceUrl",
+    "buildingType",
+    "dealType",
+    "deposit",
+    "monthlyRent",
+    "areaSqm",
+    "rooms",
+    "floorNumber",
+    "direction",
+    "totalFloors",
+    "totalUnits",
+    "totalParkingSpots",
+    "approvalDate",
+    "moveInDate",
+    "isViolationBuilding",
+    "parkingAvailable",
+    "options",
+    "maintenanceFee",
+    "loanAmount",
+    "walkMinutes",
+    "nearestStation",
+    "address",
+    "agents",
+    "photoBox",
+  ],
 };
 
 const PROMPT = `이 이미지는 한국 부동산 매물(전세/월세/반전세/매매) 정보 화면 캡처야. 아래 항목을 이미지에서 최대한 정확히 읽어서 추출해줘. 금액은 전부 "만원" 기준 숫자로 변환해줘 (예: "1억 5천" -> 15000, "1,500" -> 1500).
@@ -119,7 +148,7 @@ const PROMPT = `이 이미지는 한국 부동산 매물(전세/월세/반전세
 - agents: 중개사무소/담당자 목록. 여러 명이면 배열로 모두 담고, 각 항목은 name(중개사무소명 또는 담당자명), phone(연락처)
 - photoBox: 이미지 안에 집 내부/외부를 찍은 매물 사진(실제 방·거실·건물 외관 사진)이 포함돼 있으면, 그 사진 영역의 bounding box를 xmin, ymin, xmax, ymax로 담아줘. 좌표는 이미지 전체 너비/높이를 1000으로 봤을 때의 정규화된 값이야 (왼쪽 위가 0,0). 여러 장이면 가장 큰/대표 사진 하나만. 지도, 아이콘, 로고, 표 같은 건 매물 사진이 아니니까 제외하고, 매물 사진이 전혀 없으면 photoBox는 생략해.
 
-이미지에서 확인할 수 없는 항목은 결과에서 그냥 생략해 (추측해서 지어내지 마).`;
+이미지에 명시적으로 나와있는 항목은 절대 빠뜨리지 말고 전부 포함해. 이미지에서 확인할 수 없는 항목만 생략해 (추측해서 지어내지 마).`;
 
 const URL_PROMPT = `아래는 한국 부동산 매물(전세/월세/반전세/매매) 상세 페이지에서 가져온 텍스트야 (og 메타태그 + 본문 텍스트, 자바스크립트 렌더링 전이라 일부 정보가 빠져있을 수 있어). 이 텍스트에서 알아낼 수 있는 항목만 최대한 정확히 추출해줘. 금액은 전부 "만원" 기준 숫자로 변환해줘 (예: "1억 5천" -> 15000, "1,500" -> 1500).
 
@@ -149,7 +178,7 @@ const URL_PROMPT = `아래는 한국 부동산 매물(전세/월세/반전세/�
 - address: 주소
 - agents: 중개사무소/담당자 목록. 여러 명이면 배열로 모두 담고, 각 항목은 name(중개사무소명 또는 담당자명), phone(연락처)
 
-텍스트에서 확인할 수 없는 항목은 결과에서 그냥 생략해 (추측해서 지어내지 마). 이 페이지가 부동산 매물 페이지가 아니거나 내용을 알아볼 수 없으면 빈 객체를 반환해.`;
+텍스트에 명시적으로 나와있는 항목은 절대 빠뜨리지 말고 전부 포함해. 텍스트에서 확인할 수 없는 항목만 생략해 (추측해서 지어내지 마). 이 페이지가 부동산 매물 페이지가 아니거나 내용을 알아볼 수 없으면 빈 객체를 반환해.`;
 
 const MAX_ATTEMPTS = 3;
 const RETRY_STATUS = new Set([429, 503]);
